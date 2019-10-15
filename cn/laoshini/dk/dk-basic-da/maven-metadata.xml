@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
   <groupId>cn.laoshini.dk</groupId>
-  <artifactId>dk-impl-basic</artifactId>
+  <artifactId>dk-basic-da</artifactId>
   <versioning>
     <versions>
       <version>1.0.0-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20191015122215</lastUpdated>
+    <lastUpdated>20191015122252</lastUpdated>
   </versioning>
 </metadata>
