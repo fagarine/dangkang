@@ -1,6 +1,6 @@
 package cn.laoshini.dk.server.worker;
 
-import cn.laoshini.dk.excutor.AbstractOrderedWorker;
+import cn.laoshini.dk.executor.AbstractOrderedWorker;
 
 /**
  * @author fagarine

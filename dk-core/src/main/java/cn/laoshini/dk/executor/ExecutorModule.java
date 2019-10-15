@@ -1,4 +1,4 @@
-package cn.laoshini.dk.excutor;
+package cn.laoshini.dk.executor;
 
 /**
  * @author fagarine

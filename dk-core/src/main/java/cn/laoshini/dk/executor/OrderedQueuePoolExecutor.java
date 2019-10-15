@@ -1,4 +1,4 @@
-package cn.laoshini.dk.excutor;
+package cn.laoshini.dk.executor;
 
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
