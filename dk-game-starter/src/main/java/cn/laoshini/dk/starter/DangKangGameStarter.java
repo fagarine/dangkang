@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.springframework.context.ApplicationContext;
 
+import cn.laoshini.dk.agent.DangKangAgent;
 import cn.laoshini.dk.common.ResourcesHolder;
 import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.exception.BusinessException;
@@ -30,6 +31,16 @@ public class DangKangGameStarter extends DangKangStarter {
     }
 
     private List<IGameServerRegister> gameServerRegisters = new LinkedList<>();
+
+    /**
+     * 设置java agent启动后的Instrumentation对象（如果用户使用了自己的agent，需要注册到当康系统）
+     * 如果用户使用了当康系统提供的dk-agent作为java agent，则不需要再注册Instrumentation对象
+     *
+     * @param instrumentation java agent启动后的Instrumentation对象
+     */
+    public static void setInstrumentation(Instrumentation instrumentation) {
+        DangKangAgent.setInstrumentation(instrumentation);
+    }
 
     /**
      * 传入java agent启动后的Instrumentation对象，仅在用户使用了java agent方式启动，且使用的agent不是当康系统提供的dk-agent时，需要调用该方法

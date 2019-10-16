@@ -7,10 +7,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import cn.laoshini.dk.annotation.FunctionDependent;
-import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.constant.HotfixResultEnum;
 import cn.laoshini.dk.dao.IDefaultDao;
 import cn.laoshini.dk.domain.common.HotfixFile;
@@ -29,6 +29,9 @@ public class HotfixManager {
     @FunctionDependent(nullable = true)
     private IDefaultDao defaultDao;
 
+    @Value("#{dangKangBasicProperties.hotfix}")
+    private String hotfixDir;
+
     /**
      * 记录已热更过的类文件，key: 热更类全名, value: 文件最后修改时间
      */
@@ -38,7 +41,7 @@ public class HotfixManager {
         if (HotfixUtil.isValid()) {
             try {
                 // 记录并清空热更class文件
-                File hotfixRootDir = new File(FileUtil.getProjectPath(Constants.HOTFIX_DIR));
+                File hotfixRootDir = new File(FileUtil.getProjectPath(hotfixDir));
                 FileUtil.clearHotfixDir(hotfixRootDir, hotfixMap);
             } catch (Exception e) {
                 throw new BusinessException("hotfix.init.error", "热修复功能初始化出错", e);
@@ -62,7 +65,7 @@ public class HotfixManager {
         StringBuilder detail = new StringBuilder();
 
         List<HotfixFile> hotfixFileList = new ArrayList<>();
-        File hotfixRootDir = new File(FileUtil.getProjectPath(Constants.HOTFIX_DIR));
+        File hotfixRootDir = new File(FileUtil.getProjectPath(hotfixDir));
         FileUtil.readHotfixFiles(hotfixRootDir, hotfixFileList);
 
         int skipCount = 0;

@@ -1,7 +1,5 @@
 package cn.laoshini.dk.starter;
 
-import java.lang.instrument.Instrumentation;
-
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.GenericXmlApplicationContext;
 
@@ -24,7 +22,10 @@ public class DangKangStarter {
     private static final String APPLICATION_LOCATION = "applicationContext-dk-default.xml";
 
     /**
-     * 开启当康系统基础支持，如果需要调用该盖房，请将调用语句放在项目启动最前，否则可能导致某些功能不可用（最好放在main方法的第一行）
+     * 开启当康系统基础支持，仅包含代码热修复等不需要启动容器的基础功能
+     * <p>
+     * 如果需要调用该方法，请将调用语句放在项目启动最前，否则可能导致某些功能不可用（最好放在main方法的第一行）
+     * </p>
      *
      * @return 返回当前类，用于fluent风格编程
      */
@@ -35,16 +36,6 @@ public class DangKangStarter {
                     "当康系统agent加载失败，请保证本方法处于系统启动最前，且当康系统依赖项目dk-agent已加入项目启动classpath，或手动将dk-agent的jar包作为javaagent加入启动项");
         }
         return DangKangStarter.class;
-    }
-
-    /**
-     * 设置java agent启动后的Instrumentation对象（如果用户使用了自己的agent，需要注册到当康系统）
-     * 如果用户使用了当康系统提供的dk-agent作为java agent，则不需要再注册Instrumentation对象
-     *
-     * @param instrumentation java agent启动后的Instrumentation对象
-     */
-    static void setInstrumentation(Instrumentation instrumentation) {
-        DangKangAgent.setInstrumentation(instrumentation);
     }
 
     /**
