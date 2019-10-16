@@ -1,30 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata modelVersion="1.1.0">
   <groupId>cn.laoshini.dk</groupId>
-  <artifactId>dk-autoconfigure</artifactId>
+  <artifactId>dk-core</artifactId>
   <version>1.0.0-SNAPSHOT</version>
   <versioning>
     <snapshot>
-      <timestamp>20191016.064419</timestamp>
+      <timestamp>20191016.064522</timestamp>
       <buildNumber>1</buildNumber>
     </snapshot>
-    <lastUpdated>20191016064419</lastUpdated>
+    <lastUpdated>20191016064522</lastUpdated>
     <snapshotVersions>
       <snapshotVersion>
         <extension>jar</extension>
-        <value>1.0.0-20191016.064419-1</value>
-        <updated>20191016064419</updated>
+        <value>1.0.0-20191016.064522-1</value>
+        <updated>20191016064522</updated>
       </snapshotVersion>
       <snapshotVersion>
         <extension>pom</extension>
-        <value>1.0.0-20191016.064419-1</value>
-        <updated>20191016064419</updated>
+        <value>1.0.0-20191016.064522-1</value>
+        <updated>20191016064522</updated>
       </snapshotVersion>
       <snapshotVersion>
         <classifier>sources</classifier>
         <extension>jar</extension>
-        <value>1.0.0-20191016.064419-1</value>
-        <updated>20191016064419</updated>
+        <value>1.0.0-20191016.064522-1</value>
+        <updated>20191016064522</updated>
       </snapshotVersion>
     </snapshotVersions>
   </versioning>
