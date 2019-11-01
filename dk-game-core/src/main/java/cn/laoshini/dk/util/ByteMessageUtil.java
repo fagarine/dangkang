@@ -6,8 +6,7 @@ import com.google.protobuf.Message;
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.GameConstant;
 import cn.laoshini.dk.exception.MessageException;
-import cn.laoshini.dk.function.VariousWaysManager;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.msg.BaseProtobufMessage;
 import cn.laoshini.dk.net.msg.IByteDto;
 import cn.laoshini.dk.net.msg.ReqMessage;
@@ -107,8 +106,7 @@ public class ByteMessageUtil {
         reqMessage.setId(msg.getCmd());
         reqMessage.setParams(msg.getParams());
 
-        Class<Message> type = VariousWaysManager.getCurrentImpl(IMessageHandlerManager.class)
-                .getProtobufHandlerGenericType(msg.getCmd());
+        Class<Message> type = MessageHandlerHolder.getProtobufHandlerGenericType(msg.getCmd());
         try {
             if (type != null) {
                 reqMessage.setData(msg.getDetail().unpack(type));

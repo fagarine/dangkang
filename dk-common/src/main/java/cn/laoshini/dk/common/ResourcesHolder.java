@@ -77,8 +77,8 @@ public enum ResourcesHolder {
         return prefixes.toArray(new String[0]);
     }
 
-    public static void setSpringLocations(String[] startArgs) {
-        put(Constants.SPRING_LOCATIONS_RESOURCE_KEY, startArgs);
+    public static void setSpringLocations(String[] springLocations) {
+        put(Constants.SPRING_LOCATIONS_RESOURCE_KEY, springLocations);
     }
 
     public static String[] getSpringLocations() {
@@ -91,5 +91,13 @@ public enum ResourcesHolder {
 
     public static String[] getStartArgs() {
         return get(Constants.START_ARGS_RESOURCE_KEY);
+    }
+
+    public static void setPropertyLocations(String[] propertyLocations) {
+        put(Constants.PROPERTY_RESOURCE_KEY, propertyLocations);
+    }
+
+    public static String[] getPropertyLocations() {
+        return get(Constants.PROPERTY_RESOURCE_KEY);
     }
 }

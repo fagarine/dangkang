@@ -29,7 +29,7 @@ public class HotfixManager {
     @FunctionDependent(nullable = true)
     private IDefaultDao defaultDao;
 
-    @Value("#{dangKangBasicProperties.hotfix}")
+    @Value("${dk.hotfix:#{dangKangBasicProperties.hotfix}}")
     private String hotfixDir;
 
     /**
@@ -110,7 +110,7 @@ public class HotfixManager {
 
         int failCount = hotfixFileList.size() - skipCount - succeedCount;
         return "本次热修复，共找到文件[" + hotfixFileList.size() + "]个，其中跳过[" + skipCount + "]个，成功[" + succeedCount + "]个，失败["
-                + failCount + "]个，详细情况：" + "[" + detail + "\r\n]";
+               + failCount + "]个，详细情况：" + "[" + detail + "\r\n]";
     }
 
     private void saveHotfixRecord(List<HotfixRecord> records) {

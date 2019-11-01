@@ -10,6 +10,7 @@ import cn.laoshini.dk.agent.DangKangAgent;
 import cn.laoshini.dk.common.ResourcesHolder;
 import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.register.IEntityRegister;
 import cn.laoshini.dk.register.IGameServerRegister;
 import cn.laoshini.dk.register.IMessageHandlerRegister;
 import cn.laoshini.dk.register.IMessageRegister;
@@ -77,6 +78,17 @@ public class DangKangGameStarter extends DangKangStarter {
     }
 
     /**
+     * 传入配置项配置文件路径
+     *
+     * @param propertyConfigs 配置文件路径
+     * @return 返回当前对象，用于fluent风格编程
+     */
+    public DangKangGameStarter propertyConfigs(String... propertyConfigs) {
+        ResourcesHolder.setPropertyLocations(propertyConfigs);
+        return this;
+    }
+
+    /**
      * 如果用户希望使用当康系统提供的消息池（Message Pool），传入相关的配置信息
      *
      * @param messageRegister 用户消息注册器，通过该配置，系统才能完成用户消息的扫描和注册
@@ -121,6 +133,17 @@ public class DangKangGameStarter extends DangKangStarter {
         }
 
         gameServerRegisters.add(gameServerRegister);
+        return this;
+    }
+
+    /**
+     * 如果用户希望使用当康系统提供的表映射实体类的管理，传入相关的配置信息
+     *
+     * @param entityRegister 实体类注册器，通过该配置，系统才能完成实体类的扫描和注册
+     * @return 返回当前对象，用于fluent风格编程
+     */
+    public DangKangGameStarter entity(IEntityRegister entityRegister) {
+        Registers.addEntityRegister(entityRegister);
         return this;
     }
 

@@ -1,9 +1,9 @@
 package cn.laoshini.dk.starter;
 
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.GenericXmlApplicationContext;
 
 import cn.laoshini.dk.agent.DangKangAgent;
+import cn.laoshini.dk.common.DkApplicationContext;
 import cn.laoshini.dk.common.ResourcesHolder;
 import cn.laoshini.dk.util.CollectionUtil;
 import cn.laoshini.dk.util.LogUtil;
@@ -63,7 +63,9 @@ public class DangKangStarter {
         }
 
         ResourcesHolder.addPackagePrefixes(packagePrefixes);
-        ApplicationContext context = new GenericXmlApplicationContext(configs);
+        DkApplicationContext context = new DkApplicationContext();
+        context.setConfigLocations(configs);
+        context.refresh();
         springCompletedProcess();
         return context;
     }

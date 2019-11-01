@@ -3,14 +3,14 @@ package cn.laoshini.dk.net.session;
 import java.util.List;
 import java.util.Map;
 
-import io.netty.buffer.Unpooled;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpHeaderNames;
 
-import cn.laoshini.dk.net.codec.IByteMessageEncoder;
+import cn.laoshini.dk.net.codec.INettyMessageEncoder;
 
 import static io.netty.handler.codec.http.HttpHeaderNames.CONNECTION;
 import static io.netty.handler.codec.http.HttpHeaderValues.KEEP_ALIVE;
@@ -38,8 +38,8 @@ public class NettyHttpSession extends NettySession {
     @Override
     public void sendMessage(Object message) {
         boolean keepAlive = isHttpKeepAlive();
-        byte[] data = encoder().encode(message);
-        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, Unpooled.wrappedBuffer(data));
+        ByteBuf data = encoder().encode(message, getSubject());
+        FullHttpResponse response = new DefaultFullHttpResponse(HTTP_1_1, OK, data);
         response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/octet-stream");
         response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
 
@@ -51,11 +51,11 @@ public class NettyHttpSession extends NettySession {
         }
     }
 
-    public IByteMessageEncoder encoder() {
-        return (IByteMessageEncoder) getAttr(HTTP_ENCODER_KEY);
+    public INettyMessageEncoder<Object> encoder() {
+        return (INettyMessageEncoder<Object>) getAttr(HTTP_ENCODER_KEY);
     }
 
-    public void addEncoder(IByteMessageEncoder encoder) {
+    public <M> void addEncoder(INettyMessageEncoder<M> encoder) {
         add(HTTP_ENCODER_KEY, encoder);
     }
 

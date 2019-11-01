@@ -10,6 +10,27 @@ public class ClassScanners {
     }
 
     /**
+     * 创建并返回一个查找指定包路径（递归查找子包）下所有类的类扫描器
+     *
+     * @param packagePrefixes 包路径前缀名
+     * @return 返回系统默认实现的类扫描器
+     */
+    public static <R> DefaultClassScanner<R> newPackageScanner(String[] packagePrefixes) {
+        return new DefaultClassScanner<R>().setPackagePrefixes(packagePrefixes);
+    }
+
+    /**
+     * 创建并返回一个查找指定包路径（递归查找子包）下，符合指定类过滤条件的所有类的类扫描器
+     *
+     * @param classFilter 类过滤条件
+     * @param packagePrefixes 包路径前缀名
+     * @return 返回系统默认实现的类扫描器
+     */
+    public static <R> DefaultClassScanner<R> newPackageScanner(IClassFilter classFilter, String[] packagePrefixes) {
+        return new DefaultClassScanner<R>().setClassFilter(classFilter).setPackagePrefixes(packagePrefixes);
+    }
+
+    /**
      * 创建并返回一个通过指定超类扫描其子类的类扫描器
      *
      * @param parentClass 超类（父类或接口类）

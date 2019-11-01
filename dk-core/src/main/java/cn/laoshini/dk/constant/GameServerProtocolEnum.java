@@ -12,5 +12,6 @@ public enum GameServerProtocolEnum {
      */
     TCP,
     UDP,
-    HTTP;
+    HTTP,
+    WEBSOCKET;
 }

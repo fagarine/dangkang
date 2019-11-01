@@ -22,7 +22,7 @@ import cn.laoshini.dk.util.StringUtil;
  */
 @Component
 @FunctionVariousWays
-@ConditionalOnPropertyExists(prefix = "dk.rdb", name = { "driver", "url", "username", "password" })
+@ConditionalOnPropertyExists(prefix = "dk.rdb", name = { "url", "username", "password" })
 public class RelationalDbDaoManager implements IRelationalDbDaoManager {
 
     @Resource(name = "innerGameJdbcTemplate")
@@ -39,7 +39,7 @@ public class RelationalDbDaoManager implements IRelationalDbDaoManager {
             throw new BusinessException("table.register.null", String.format("表名[%s]和类[%s]不能为空", tableName, clazz));
         }
 
-        IRelationalDbDao dao = relationalDbDaoMap.get(tableName);
+        IRelationalDbDao<EntityType> dao = relationalDbDaoMap.get(tableName);
         if (dao == null) {
             dao = VariousWaysManager.getFunctionCurrentImpl(IRelationalDbDao.class, clazz, innerGameJdbcTemplate);
             relationalDbDaoMap.put(tableName, dao);
@@ -47,7 +47,6 @@ public class RelationalDbDaoManager implements IRelationalDbDaoManager {
             throw new DaoException("table.dao.conflict",
                     String.format("DAO实体类对应的表冲突, table:%s, 已注册类:%s, 期望类:%s", tableName, dao.getType(), clazz));
         }
-        //noinspection unchecked
         return dao;
     }
 

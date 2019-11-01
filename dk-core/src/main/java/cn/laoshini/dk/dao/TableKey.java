@@ -23,4 +23,9 @@ public @interface TableKey {
      */
     String value() default "";
 
+    /**
+     * 是否是自增字段
+     */
+    boolean autoIncrement() default false;
+
 }

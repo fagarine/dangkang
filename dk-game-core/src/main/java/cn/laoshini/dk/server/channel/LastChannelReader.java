@@ -2,10 +2,9 @@ package cn.laoshini.dk.server.channel;
 
 import io.netty.channel.ChannelHandlerContext;
 
-import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.constant.AttributeKeyConstant;
 import cn.laoshini.dk.domain.GameSubject;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.handler.MessageReceiveDispatcher;
 import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.util.LogUtil;
@@ -17,20 +16,17 @@ import cn.laoshini.dk.util.LogUtil;
  */
 class LastChannelReader implements INettyChannelReader<ReqMessage> {
 
-    @FunctionDependent
-    private IMessageHandlerManager messageHandlerManager;
-
     @Override
     public void channelRead(ChannelHandlerContext ctx, ReqMessage msg) {
         // 协议到达后处理
         GameSubject gameSubject = ctx.channel().attr(AttributeKeyConstant.PLAYER).get();
         if (gameSubject == null) {
-            if (!messageHandlerManager.allowGuestRequest(msg.getId())) {
+            if (!MessageHandlerHolder.allowGuestRequest(msg.getId())) {
                 LogUtil.error("玩家未登录，msg:[{}], 关闭连接:{}", msg, ctx);
                 ctx.close();
                 return;
             }
         }
-        MessageReceiveDispatcher.dealMessage(msg, gameSubject);
+        MessageReceiveDispatcher.messageReceived(msg, gameSubject);
     }
 }

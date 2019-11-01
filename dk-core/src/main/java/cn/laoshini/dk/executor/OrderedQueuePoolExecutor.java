@@ -29,14 +29,18 @@ public class OrderedQueuePoolExecutor extends ThreadPoolExecutor implements IOrd
 
     private int maxQueueSize;
 
-    public OrderedQueuePoolExecutor(String name, int corePoolSize, int maxQueueSize) {
+    public OrderedQueuePoolExecutor(String name, Integer corePoolSize, Integer maxQueueSize) {
         super(poolSize(corePoolSize), poolSize(2 * corePoolSize), 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
         this.name = name;
         this.corePoolSize = corePoolSize;
         this.maxQueueSize = maxQueueSize;
     }
 
-    public OrderedQueuePoolExecutor(int corePoolSize) {
+    public OrderedQueuePoolExecutor(String name, Integer corePoolSize) {
+        this(name, corePoolSize, Integer.MAX_VALUE);
+    }
+
+    public OrderedQueuePoolExecutor(Integer corePoolSize) {
         this("queue-pool", corePoolSize, Integer.MAX_VALUE);
     }
 

@@ -22,6 +22,8 @@ import cn.laoshini.dk.dao.TableMapping;
 @TableMapping(value = InnerTableNameConst.GAME_ROLE, description = "游戏角色记录")
 public class GameRole implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * 角色id
      */

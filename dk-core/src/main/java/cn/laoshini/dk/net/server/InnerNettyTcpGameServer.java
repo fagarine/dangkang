@@ -2,14 +2,8 @@ package cn.laoshini.dk.net.server;
 
 import java.util.List;
 
-import cn.laoshini.dk.constant.Constants;
-import cn.laoshini.dk.exception.BusinessException;
-import cn.laoshini.dk.register.GameServerRegisterAdaptor;
-import cn.laoshini.dk.util.LogUtil;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,6 +11,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -24,15 +19,26 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.codec.MessageToByteEncoder;
+import io.netty.handler.traffic.GlobalTrafficShapingHandler;
+
+import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.net.session.AbstractSession;
+import cn.laoshini.dk.net.session.NettySession;
+import cn.laoshini.dk.register.GameServerRegisterAdaptor;
+import cn.laoshini.dk.util.LogUtil;
 
 import static cn.laoshini.dk.constant.GameConstant.MAX_FRAME_LENGTH;
 import static cn.laoshini.dk.constant.GameConstant.MESSAGE_LENGTH_OFFSET;
-import static io.netty.buffer.Unpooled.wrappedBuffer;
 
 /**
  * @author fagarine
  */
 class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
+
+    private GlobalTrafficShapingHandler trafficShapingHandler;
+
+    private EventLoopGroup accepterGroup;
 
     InnerNettyTcpGameServer(GameServerRegisterAdaptor<S, M> gameServerRegister) {
         super(gameServerRegister, "netty-tcp-server");
@@ -45,13 +51,14 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
         int port = getPort();
 
         // 大小为监听的端口数目
-        EventLoopGroup accepterGroup = new NioEventLoopGroup();
+        accepterGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
 
-        LogUtil.info("游戏 [{}] 开始启动...", getGameName());
+        LogUtil.info("TCP游戏 [{}] 开始启动...", getGameName());
 
         try {
             ServerBootstrap b = new ServerBootstrap();
+            trafficShapingHandler = new GlobalTrafficShapingHandler(workerGroup, 5000L);
             b.group(accepterGroup, workerGroup).channel(NioServerSocketChannel.class);
             b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
             b.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000);
@@ -67,7 +74,7 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
             b.childHandler(newBusinessHandler());
 
             Channel channel = b.bind(port).sync().channel();
-            LogUtil.start("游戏 [{}] 成功绑定端口 [{}]，启动成功", getGameName(), port);
+            LogUtil.start("TCP游戏 [{}] 成功绑定端口 [{}]，启动成功", getGameName(), port);
 
             channel.closeFuture().sync();
         } catch (Exception e) {
@@ -83,6 +90,7 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline pipeLine = ch.pipeline();
+                pipeLine.addLast(trafficShapingHandler);
                 idleHandler(pipeLine);
 
                 pipeLine.addLast("frameEncoder", new LengthFieldPrepender(MESSAGE_LENGTH_OFFSET));
@@ -97,32 +105,95 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
         };
     }
 
-    private class TcpChannelReaderHandler extends AbstractKeepAliveHandler<M> {
+    private class TcpChannelReaderHandler extends SimpleChannelInboundHandler<M> {
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, M msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, M msg) {
+            if (shutdown.get()) {
+                return;
+            }
+
+            if (pause.get()) {
+                // 业务暂停时，停止接受客户端消息，或返回提示信息，或考虑其他的处理方式
+                return;
+            }
             // 消息分发
             dispatchMessage(ctx.channel(), msg);
         }
 
+        @Override
+        public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+            super.channelRegistered(ctx);
+            LogUtil.session("server channel registered:" + ctx.channel());
+        }
+
+        @Override
+        public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+            super.channelUnregistered(ctx);
+            LogUtil.session("server channel unregistered:" + ctx.channel());
+        }
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            super.channelActive(ctx);
+            Channel channel = ctx.channel();
+            LogUtil.session("连接建立成功:" + channel);
+
+            incrementOnline();
+
+            long channelId = channel2Id(channel);
+            setChannelId(channel, channelId);
+            NettySession innerSession = new NettySession(channel);
+            innerSession.setId(channelId);
+            recordInnerSession(channelId, innerSession);
+
+            S session = getGameServerRegister().sessionCreator().newSession(innerSession);
+            recordSession(channelId, session);
+
+            getGameServerRegister().connectOpenedOperation().onConnected(session);
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            super.channelInactive(ctx);
+            LogUtil.session("tcp server channel channelInactive:" + ctx.channel());
+
+            decrementOnline();
+
+            Long channelId = getChannelId(ctx.channel());
+            S session = removeSession(channelId);
+            if (session != null && getGameServerRegister().connectClosedOperation() != null) {
+                getGameServerRegister().connectClosedOperation().onDisconnected(session);
+            }
+
+            AbstractSession innerSession = removeInnerSession(channelId);
+            if (innerSession != null) {
+                innerSession.close();
+            }
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            super.exceptionCaught(ctx, cause);
+            LogUtil.session("server channel exceptionCaught:" + ctx.channel());
+
+            if (getGameServerRegister().connectExceptionOperation() != null) {
+                getGameServerRegister().connectExceptionOperation()
+                        .onException(getSessionByChannel(ctx.channel()), cause);
+            }
+
+            if (ctx.channel().isActive()) {
+                ctx.close();
+            }
+        }
     }
 
     private ByteToMessageDecoder newMessageDecoder() {
         return new ByteToMessageDecoder() {
             @Override
             protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-                final byte[] bytes;
-                final int offset;
-                final int length = in.readableBytes();
-                if (in.hasArray()) {
-                    bytes = in.array();
-                    offset = in.arrayOffset() + in.readerIndex();
-                } else {
-                    bytes = ByteBufUtil.getBytes(in, in.readerIndex(), length, false);
-                    offset = 0;
-                }
-
-                out.addAll(getGameServerRegister().decoder().decode(bytes, offset, length));
+                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
+                out.add(getGameServerRegister().decoder().decode(in, subject));
             }
         };
     }
@@ -131,11 +202,17 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
         return new MessageToByteEncoder<M>() {
             @Override
             protected void encode(ChannelHandlerContext ctx, M msg, ByteBuf out) throws Exception {
-                byte[] bytes = getGameServerRegister().encoder().encode(msg);
-                out.writeBytes(wrappedBuffer(bytes == null ? Constants.EMPTY_BYTES : bytes));
+                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
+                ByteBuf buf = getGameServerRegister().encoder().encode(msg, subject);
+                out.writeBytes(buf);
                 ctx.flush();
             }
         };
     }
 
+    @Override
+    protected void shutdown0() {
+        accepterGroup.shutdownGracefully();
+        super.shutdown0();
+    }
 }

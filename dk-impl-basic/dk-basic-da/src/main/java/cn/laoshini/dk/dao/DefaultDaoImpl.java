@@ -6,7 +6,6 @@ import org.springframework.stereotype.Component;
 
 import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.annotation.FunctionVariousWays;
-import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.condition.ConditionalOnPropertyValue;
 import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.dao.query.BeanQueryCondition;
@@ -27,16 +26,16 @@ import cn.laoshini.dk.util.ReflectHelper;
 public final class DefaultDaoImpl implements IDefaultDao {
 
     /**
-     * 键值对数据库的数据访问对象（仅在系统不使用关系数据库启动的情况下存在）
-     */
-    @FunctionDependent(nullable = true, afterExecute = "init")
-    private IPairDbDao pairDbDao;
-
-    /**
      * 关系数据库数据访问对象（仅在系统使用关系数据库的情况下存在）
      */
     @FunctionDependent(nullable = true, afterExecute = "init")
     private IRelationalDbDaoManager relationalDbDaoManager;
+
+    /**
+     * 键值对数据库的数据访问对象（仅在系统不使用关系数据库启动的情况下存在）
+     */
+    @FunctionDependent(nullable = true, afterExecute = "init")
+    private IPairDbDao pairDbDao;
 
     @FunctionDependent
     private IEntityClassManager entityClassManager;
@@ -50,12 +49,7 @@ public final class DefaultDaoImpl implements IDefaultDao {
      * 初始化系统内部缺省DAO
      */
     private void init() {
-        try {
-            SpringContextHolder.getBean("innerGameDataSource");
-            useRdb = true;
-        } catch (Exception e) {
-            // 进入这里，说明找不到关系数据库配置，表示没有使用关系数据库
-        }
+        useRdb = relationalDbDaoManager != null;
     }
 
     @Override
@@ -150,6 +144,36 @@ public final class DefaultDaoImpl implements IDefaultDao {
                 String tableName = entityClassManager.getClassTableName(clazz.getName());
                 if (useRdb()) {
                     getDefaultRelationalDao(tableName, clazz).insertList(beans);
+                }
+            }
+        }
+    }
+
+    @Override
+    public <EntityType> void updateEntity(EntityType bean) {
+        if (isValid() && bean != null) {
+            @SuppressWarnings("unchecked")
+            Class<EntityType> clazz = (Class<EntityType>) bean.getClass();
+            if (entityClassManager.containsClass(clazz)) {
+                String tableName = entityClassManager.getClassTableName(clazz.getName());
+                if (usePairDb()) {
+                    pairDbDao.saveKeyValue(ReflectHelper.getTableKey(tableName, bean), bean);
+                } else if (useRdb()) {
+                    getDefaultRelationalDao(tableName, clazz).update(bean);
+                }
+            }
+        }
+    }
+
+    @Override
+    public <EntityType> void updateRelationalEntityList(List<EntityType> beans) {
+        if (isValid() && beans != null && !beans.isEmpty()) {
+            @SuppressWarnings("unchecked")
+            Class<EntityType> clazz = (Class<EntityType>) beans.get(0).getClass();
+            if (entityClassManager.containsClass(clazz)) {
+                String tableName = entityClassManager.getClassTableName(clazz.getName());
+                if (useRdb()) {
+                    getDefaultRelationalDao(tableName, clazz).updateList(beans);
                 }
             }
         }

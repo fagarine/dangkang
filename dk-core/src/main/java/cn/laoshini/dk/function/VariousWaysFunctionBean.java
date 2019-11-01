@@ -4,6 +4,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.util.StringUtils;
+
 import cn.laoshini.dk.annotation.FunctionVariousWays;
 import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.constant.Constants;
@@ -168,7 +170,8 @@ public class VariousWaysFunctionBean<FunctionType> {
 
         FunctionVariousWays annotation = clazz.getAnnotation(FunctionVariousWays.class);
         if (annotation.singleton()) {
-            return SpringContextHolder.getBean(clazz);
+            String beanName = StringUtils.uncapitalize(clazz.getSimpleName());
+            return SpringContextHolder.getBean(beanName);
         }
 
         FunctionType impl = ReflectUtil.newInstance(clazz, initArgs);

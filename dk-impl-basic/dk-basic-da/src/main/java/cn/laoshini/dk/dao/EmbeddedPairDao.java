@@ -6,8 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import javax.annotation.PostConstruct;
-
 import org.iq80.leveldb.DB;
 import org.iq80.leveldb.DBFactory;
 import org.iq80.leveldb.DBIterator;
@@ -39,7 +37,7 @@ import cn.laoshini.dk.util.StringUtil;
 @ConditionalOnPropertyMissing(prefix = "dk.rdb", name = { "url", "username" })
 public class EmbeddedPairDao implements IPairDbDao {
 
-    @Value("#{dangKangPairDaoProperties.levelDbFolder}")
+    @Value("${dangKangPairDaoProperties.levelDbFolder:#{dangKangPairDaoProperties.levelDbFolder}}")
     private String dbFolder;
 
     /**
@@ -51,7 +49,8 @@ public class EmbeddedPairDao implements IPairDbDao {
 
     private DB db;
 
-    @PostConstruct
+    private boolean initialized;
+
     public void initDB() {
         serialization = new StringDataSerialization();
 
@@ -200,6 +199,11 @@ public class EmbeddedPairDao implements IPairDbDao {
      * 检查数据库是否已连接成功，如果没有，则抛出异常
      */
     public void checkDBIsConnect() {
+        if (!initialized) {
+            initialized = true;
+            initDB();
+        }
+
         if (!connected()) {
             throw new DaoException("db.not.connect", "数据库未连接成功");
         }

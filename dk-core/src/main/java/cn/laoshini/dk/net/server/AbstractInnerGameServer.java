@@ -8,6 +8,7 @@ import cn.laoshini.dk.constant.GameServerProtocolEnum;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.net.session.AbstractSession;
 import cn.laoshini.dk.net.session.IMessageSender;
+import cn.laoshini.dk.net.session.ISessionCreator;
 import cn.laoshini.dk.register.GameServerRegisterAdaptor;
 import cn.laoshini.dk.server.AbstractGameServer;
 import cn.laoshini.dk.util.LogUtil;
@@ -44,8 +45,8 @@ public abstract class AbstractInnerGameServer<S, M> extends AbstractGameServer {
         GameServerRegisterAdaptor register = getGameServerRegister();
         if (register.sessionCreator() == null) {
             // 如果用户没有设置自己的会话创建对象，默认使用系统会话
-            LogUtil.debug("用户没有设置Session创建者，使用系统默认Session");
-            register.setSessionCreator(s -> s);
+            LogUtil.debug("用户没有设置Session构造器，使用系统默认Session");
+            register.setSessionCreator(ISessionCreator.DK_SESSION_CREATOR);
         }
 
         if (register.decoder() == null) {
@@ -64,11 +65,10 @@ public abstract class AbstractInnerGameServer<S, M> extends AbstractGameServer {
             throw new BusinessException("message.dispatcher.empty", getGameName() + "，缺失消息到达后的转发处理逻辑");
         }
 
-        if (register.messageSender() == null) {
+        if (register.messageSender() == null && !ISessionCreator.DK_SESSION_CREATOR.equals(register.sessionCreator())) {
             boolean canEmpty = false;
             try {
-                Method method = getGameServerRegister().sessionCreator().getClass()
-                        .getMethod("newSession", AbstractSession.class);
+                Method method = register.sessionCreator().getClass().getMethod("newSession", AbstractSession.class);
 
                 // 如果用户使用当康系统的会话类型，则允许消息发送逻辑为空
                 if (AbstractSession.class.isAssignableFrom(method.getReturnType())) {

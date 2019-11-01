@@ -8,6 +8,8 @@ package cn.laoshini.dk.net.session;
 @FunctionalInterface
 public interface ISessionCreator<S> {
 
+    ISessionCreator<AbstractSession> DK_SESSION_CREATOR = s -> s;
+
     /**
      * 创建一个业务会话对象并返回
      *

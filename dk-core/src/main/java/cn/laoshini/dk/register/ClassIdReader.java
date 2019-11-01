@@ -1,11 +1,12 @@
 package cn.laoshini.dk.register;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.function.Function;
 
-import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.util.LogUtil;
 
 /**
  * @author fagarine
@@ -14,47 +15,92 @@ public class ClassIdReader {
     private ClassIdReader() {
     }
 
-    public static <I> Function<Class<?>, I> methodReader(String idMethodName) {
+    /**
+     * 创建并返回一个，通过类中的常量或类静态变量，读取类ID的读取器
+     *
+     * @param idFieldName 类id变量名称
+     * @param <I> id类型
+     * @return 该方法不会返回null
+     */
+    public static <I> Function<Class<?>, I> fieldReader(String idFieldName) {
         return clazz -> {
-            Constructor constructor;
+            Field idField;
             try {
-                constructor = clazz.getConstructor();
-            } catch (NoSuchMethodException e) {
-                throw new BusinessException("no.valid.constructor",
-                        String.format("类[%s]没有提供一个外部可访问的无参构造方法", clazz.getName()));
+                idField = clazz.getDeclaredField(idFieldName);
+            } catch (NoSuchFieldException e) {
+                LogUtil.debug("类[{}]中没有找到名为[{}]的变量或常量", clazz.getName(), idFieldName);
+                return null;
             }
 
-            Object object;
-            try {
-                object = constructor.newInstance();
-            } catch (Exception e) {
-                throw new BusinessException("execute.constructor.fail",
-                        String.format("调用类[%s]的无参构造方法出错", clazz.getName()), e);
-            }
-
-            Method idMethod;
-            try {
-                idMethod = clazz.getMethod(idMethodName);
-            } catch (NoSuchMethodException e) {
-                String msg = String.format("类[%s]没有提供一个外部可访问的无参方法获取id, method:%s", clazz.getName(), idMethodName);
-                throw new BusinessException("id.method.missing", msg);
+            if (!Modifier.isStatic(idField.getModifiers())) {
+                LogUtil.debug("类[{}]中id[{}]必须是静态变量或常量", clazz.getName(), idFieldName);
+                return null;
             }
 
             I id;
+            boolean accessible = idField.isAccessible();
             try {
-                id = (I) (idMethod.invoke(object));
+                if (!accessible) {
+                    idField.setAccessible(true);
+                }
+                id = (I) (idField.get(null));
+                return id;
             } catch (Exception e) {
-                String msg = String.format("获取[%s]类对应的id出错,  method:%s", clazz.getName(), idMethodName);
-                throw new BusinessException("id.method.error", msg, e);
+                LogUtil.debug("获取[{}]类对应的id出错, field: {}", clazz.getName(), idFieldName);
+                return null;
+            } finally {
+                idField.setAccessible(accessible);
             }
-
-            if (id == null) {
-                throw new BusinessException("id.is.null", "id不能为空, class:" + clazz.getName());
-            }
-            return id;
         };
     }
 
+    /**
+     * 创建并返回一个，通过类中的静态方法，读取类ID的读取器
+     *
+     * @param idMethodName 读取类id方法名称
+     * @param <I> id类型
+     * @return 该方法不会返回null
+     */
+    public static <I> Function<Class<?>, I> methodReader(String idMethodName) {
+        return clazz -> {
+            Method idMethod;
+            try {
+                idMethod = clazz.getDeclaredMethod(idMethodName);
+            } catch (NoSuchMethodException e) {
+                LogUtil.debug("类[{}]没有提供一个可访问的无参方法获取id, method:{}", clazz.getName(), idMethodName);
+                return null;
+            }
+
+            if (!Modifier.isStatic(idMethod.getModifiers())) {
+                LogUtil.debug("类[{}]中获取id的方法[{}]必须是静态方法", clazz.getName(), idMethodName);
+                return null;
+            }
+
+            I id;
+            boolean accessible = idMethod.isAccessible();
+            try {
+                if (!accessible) {
+                    idMethod.setAccessible(true);
+                }
+                id = (I) (idMethod.invoke(null));
+                return id;
+            } catch (Exception e) {
+                LogUtil.debug("获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
+                return null;
+            } finally {
+                idMethod.setAccessible(accessible);
+            }
+        };
+    }
+
+    /**
+     * 创建并返回一个，通过类注解中的方法，读取类ID的读取器
+     *
+     * @param annotationClass 带有读取类id方法的注解类
+     * @param idMethodName 读取类id方法名称
+     * @param <I> id变量类型
+     * @return 该方法不会返回null
+     */
     public static <I> Function<Class<?>, I> annotationReader(Class<? extends Annotation> annotationClass,
             String idMethodName) {
         return clazz -> {
@@ -65,51 +111,36 @@ public class ClassIdReader {
                 try {
                     idMethod = annotationClass.getMethod(idMethodName);
                 } catch (NoSuchMethodException e1) {
-                    String msg = String.format("注解[%s]中没有获取id的方法, method:%s", annotationClass.getName(), idMethodName);
-                    throw new BusinessException("id.method.missing", msg);
+                    LogUtil.debug("注解[{}]中没有获取id的方法, method: {}", clazz.getName(), idMethodName);
+                    return null;
                 }
             } else {
-                throw new BusinessException("id.annotation.missing",
-                        String.format("类[%s]未被注解[%s]标记，无法获取其对应的id", clazz.getName(), annotationClass.getName()));
+                LogUtil.debug("从注解中获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
+                return null;
             }
 
             I id;
             try {
                 id = (I) (idMethod.invoke(annotation));
+                return id;
             } catch (Exception e) {
-                String msg = String.format("从注解中获取[%s]类对应的id出错,  method:%s", clazz.getName(), idMethodName);
-                throw new BusinessException("id.method.error", msg, e);
+                LogUtil.debug("从注解中获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
+                return null;
             }
-
-            if (id == null) {
-                throw new BusinessException("id.is.null", "id不能为空, class:" + clazz.getName());
-            }
-            return id;
         };
     }
 
     public static <I> Function<Class<?>, I> methodOrAnnotationReader(String idMethodName,
             Class<? extends Annotation> annotationClass, String annotationIdMethod) {
         return clazz -> {
-            Constructor constructor;
-            try {
-                constructor = clazz.getConstructor();
-            } catch (NoSuchMethodException e) {
-                throw new BusinessException("no.valid.constructor",
-                        String.format("类[%s]没有提供一个外部可访问的无参构造方法", clazz.getName()));
-            }
-
-            Object object;
-            try {
-                object = constructor.newInstance();
-            } catch (Exception e) {
-                throw new BusinessException("execute.constructor.fail",
-                        String.format("调用类[%s]的无参构造方法出错", clazz.getName()), e);
-            }
-
+            Object object = null;
             Method idMethod = null;
             try {
-                idMethod = clazz.getMethod(idMethodName);
+                idMethod = clazz.getDeclaredMethod(idMethodName);
+                if (!Modifier.isStatic(idMethod.getModifiers())) {
+                    LogUtil.debug("类[{}]中获取id的方法[{}]必须是静态方法", clazz.getName(), idMethodName);
+                    return null;
+                }
             } catch (NoSuchMethodException e) {
                 // 在类中找不到获取id的方法，在注解中查找
                 if (annotationClass != null) {
@@ -127,22 +158,24 @@ public class ClassIdReader {
             }
 
             if (idMethod == null) {
-                String msg = String.format("类[%s]没有提供一个外部可访问的无参方法获取id, method:%s", clazz.getName(), idMethodName);
-                throw new BusinessException("id.method.missing", msg);
+                LogUtil.debug("类[{}]没有提供一个外部可访问的无参方法获取id, method: {}", clazz.getName(), idMethodName);
+                return null;
             }
 
             I id;
+            boolean accessible = idMethod.isAccessible();
             try {
+                if (!accessible) {
+                    idMethod.setAccessible(true);
+                }
                 id = (I) (idMethod.invoke(object));
+                return id;
             } catch (Exception e) {
-                String msg = String.format("获取[%s]类对应的id出错,  method:%s", clazz.getName(), idMethod.getName());
-                throw new BusinessException("id.method.error", msg, e);
+                LogUtil.debug("获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
+                return null;
+            } finally {
+                idMethod.setAccessible(accessible);
             }
-
-            if (id == null) {
-                throw new BusinessException("id.is.null", "id不能为空, class:" + clazz.getName());
-            }
-            return id;
         };
     }
 }

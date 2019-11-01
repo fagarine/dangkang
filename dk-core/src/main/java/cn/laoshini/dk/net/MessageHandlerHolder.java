@@ -7,13 +7,27 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+import com.google.protobuf.Message;
 import org.springframework.util.StringUtils;
 
 import cn.laoshini.dk.annotation.ResourceHolder;
+import cn.laoshini.dk.autoconfigure.DangKangBasicProperties;
+import cn.laoshini.dk.common.SpringContextHolder;
+import cn.laoshini.dk.constant.GameCodeEnum;
+import cn.laoshini.dk.constant.LogLabel;
+import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.domain.HandlerDesc;
 import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.exception.MessageException;
+import cn.laoshini.dk.net.handler.ExpressionMessageHandler;
+import cn.laoshini.dk.net.handler.IHttpMessageHandler;
 import cn.laoshini.dk.net.handler.IMessageHandler;
+import cn.laoshini.dk.net.msg.ReqMessage;
+import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.CollectionUtil;
+import cn.laoshini.dk.util.LogUtil;
+import cn.laoshini.dk.util.ReflectHelper;
+import cn.laoshini.dk.util.StringUtil;
 
 /**
  * @author fagarine
@@ -24,6 +38,8 @@ public enum MessageHandlerHolder {
      * 枚举实现单例
      */
     INSTANCE;
+
+    private static int maxResponseTime;
 
     /**
      * 记录handler类的类型
@@ -153,6 +169,16 @@ public enum MessageHandlerHolder {
     }
 
     /**
+     * 注册表达式Handler
+     *
+     * @param messageId 消息id
+     * @param handler 表达式Handler实例
+     */
+    public static void registerExpHandler(int messageId, ExpressionMessageHandler handler) {
+        registerSingletonHandler(messageId, handler);
+    }
+
+    /**
      * 预备移除指定类加载器加载的Handler类
      *
      * @param classLoader 类加载器
@@ -189,6 +215,21 @@ public enum MessageHandlerHolder {
             }
         }
         SPRING_BEAN_NAMES.remove(classLoader);
+    }
+
+    /**
+     * 清除传入消息id的注册信息
+     *
+     * @param messageId 消息id
+     */
+    public static void unregisterHandler(int messageId) {
+        Object handler = HANDLER_INSTANCE_MAP.remove(messageId);
+        if (handler != null) {
+            Set<Integer> ids = MESSAGE_ID_MAP.get(handler.getClass().getClassLoader());
+            if (ids != null) {
+                ids.remove(messageId);
+            }
+        }
     }
 
     /**
@@ -255,7 +296,7 @@ public enum MessageHandlerHolder {
      */
     public static boolean allowGuestRequest(int messageId) {
         HandlerDesc desc = DESCRIPTORS.get(messageId);
-        return desc != null && desc.isAllowGuestRequest();
+        return desc == null || desc.isAllowGuestRequest();
     }
 
     /**
@@ -271,4 +312,149 @@ public enum MessageHandlerHolder {
         }
         return desc.getGenericType();
     }
+
+    /**
+     * 获取protobuf消息处理handler类的泛型类
+     *
+     * @param messageId 消息id
+     * @return 该方法可能返回null
+     */
+    public static Class<Message> getProtobufHandlerGenericType(int messageId) {
+        Class<?> clazz = getHandlerGenericType(messageId);
+        if (clazz != null && Message.class.isAssignableFrom(clazz)) {
+            return (Class<Message>) clazz;
+        }
+
+        IMessageHandler handler = getMessageHandlerOnCheck(messageId);
+        if (handler != null) {
+            return (Class<Message>) ReflectHelper.getMessageHandlerGenericType(handler.getClass());
+        }
+
+        throw new MessageException(GameCodeEnum.SERVER_EXCEPTION, "protobuf.handler.error",
+                String.format("消息id [%d] 的handler配置错误，不是protobuf消息处理handler", messageId));
+    }
+
+    /**
+     * 执行消息handler逻辑
+     *
+     * @param reqMessage 进入消息
+     * @param gameSubject 消息所属主体对象
+     */
+    public static void doMessageHandler(ReqMessage<Object> reqMessage, GameSubject gameSubject) {
+        if (reqMessage == null) {
+            throw new MessageException(GameCodeEnum.PARAM_ERROR, "req.message.null", "进入消息不能为空");
+        }
+
+        IMessageHandler<Object> handler = getMessageHandlerOnCheck(reqMessage.getId());
+        if (handler instanceof IHttpMessageHandler) {
+            RespMessage resp = invokeHandlerCall(reqMessage.getId(), reqMessage, gameSubject);
+            if (resp != null) {
+                gameSubject.getSession().sendMessage(resp);
+            }
+        } else {
+            invokeHandlerAction(reqMessage.getId(), reqMessage, gameSubject);
+        }
+    }
+
+    private static void invokeHandlerAction(int messageId, ReqMessage<Object> reqMessage, GameSubject subject) {
+        IMessageHandler<Object> handler = getMessageHandlerOnCheck(messageId);
+
+        long now = System.currentTimeMillis();
+        try {
+            handler.action(reqMessage, subject);
+        } catch (Throwable t) {
+            String print = String
+                    .format("消息id[%d]执行处理逻辑出错, handler:%s, message:%s, subject:%s", messageId, handler, reqMessage,
+                            subject);
+            LogUtil.error(print, t);
+            throw t;
+        } finally {
+            long duration = System.currentTimeMillis() - now;
+            // 超过最大响应时间的操作，记录日志
+            if (duration > getMaxResponseTime()) {
+                LogUtil.error(LogLabel.HANDLER, "消息[{}]处理时间[{}]ms", reqMessage, duration);
+            }
+        }
+    }
+
+    private static IMessageHandler<Object> getMessageHandlerOnCheck(int messageId) {
+        boolean exists = exists(messageId);
+        if (!exists) {
+            throw new MessageException(GameCodeEnum.NO_HANDLER, "message.handler.missing",
+                    String.format("找不到消息id[%d]的处理类", messageId));
+        }
+
+        IMessageHandler<Object> handler = getSingletonHandler(messageId);
+        if (handler == null) {
+            Class<IMessageHandler<Object>> handlerClass = getProtoHandlerClass(messageId);
+            try {
+                return handlerClass.newInstance();
+            } catch (InstantiationException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return handler;
+    }
+
+    private static IHttpMessageHandler<Object> getHttpHandlerOnCheck(int messageId) {
+        IMessageHandler<Object> handler = getMessageHandlerOnCheck(messageId);
+        if (handler instanceof IHttpMessageHandler) {
+            return (IHttpMessageHandler<Object>) handler;
+        }
+        throw new MessageException(GameCodeEnum.NOT_HTTP_HANDLER, "not.http.handler",
+                String.format("消息id[%d]的处理类不是Http消息专用处理类", messageId));
+    }
+
+    /**
+     * 执行消息handler逻辑的call()方法
+     *
+     * @param reqMessage 进入消息
+     * @param gameSubject 消息所属主体对象
+     * @return 返回执行后的发往客户端的消息
+     */
+    public static RespMessage doMessageHandlerCall(ReqMessage<Object> reqMessage, GameSubject gameSubject) {
+        if (reqMessage == null) {
+            throw new MessageException(GameCodeEnum.PARAM_ERROR, "req.message.null", "进入消息不能为空");
+        }
+
+        return invokeHandlerCall(reqMessage.getId(), reqMessage, gameSubject);
+    }
+
+    private static RespMessage invokeHandlerCall(int messageId, ReqMessage<Object> reqMessage, GameSubject subject) {
+        IHttpMessageHandler<Object> handler = getHttpHandlerOnCheck(messageId);
+
+        long now = System.currentTimeMillis();
+        try {
+            return handler.call(reqMessage, subject);
+        } catch (Throwable t) {
+            String print = String
+                    .format("消息id[%d]执行处理逻辑出错, handler:%s, message:%s, subject:%s", messageId, handler, reqMessage,
+                            subject);
+            LogUtil.error(print, t);
+            throw t;
+        } finally {
+            long duration = System.currentTimeMillis() - now;
+            // 超过最大响应时间的操作，记录日志
+            if (duration > getMaxResponseTime()) {
+                LogUtil.error(LogLabel.HANDLER, "消息[{}]处理时间[{}]ms", reqMessage, duration);
+            }
+        }
+    }
+
+    private static int getMaxResponseTime() {
+        if (maxResponseTime == 0) {
+            if (SpringContextHolder.isInitialized()) {
+                String value = SpringContextHolder.getProperty("dk.max-response");
+                if (StringUtil.isNotEmptyString(value)) {
+                    maxResponseTime = Integer.parseInt(value);
+                } else {
+                    maxResponseTime = SpringContextHolder.getBean(DangKangBasicProperties.class).getMaxResponse();
+                }
+            } else {
+                maxResponseTime = 20;
+            }
+        }
+        return maxResponseTime;
+    }
+
 }

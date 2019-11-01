@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.List;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
-import cn.laoshini.dk.net.codec.IByteMessageDecoder;
-import cn.laoshini.dk.net.codec.IByteMessageEncoder;
+import cn.laoshini.dk.net.codec.INettyMessageDecoder;
+import cn.laoshini.dk.net.codec.INettyMessageEncoder;
 import cn.laoshini.dk.net.connect.IConnectClosedHandler;
 import cn.laoshini.dk.net.connect.IConnectExceptionHandler;
 import cn.laoshini.dk.net.connect.IConnectOpenedHandler;
@@ -78,14 +78,14 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
      *
      * @return 仅支持二进制消息解码，不允许返回null
      */
-    IByteMessageDecoder<M> decoder();
+    INettyMessageDecoder<M> decoder();
 
     /**
      * 返回一个消息编码器
      *
      * @return 仅支持编码为二进制消息，不允许返回null
      */
-    IByteMessageEncoder<M> encoder();
+    INettyMessageEncoder<M> encoder();
 
     /**
      * 获取客户端连接建立成功时的行为

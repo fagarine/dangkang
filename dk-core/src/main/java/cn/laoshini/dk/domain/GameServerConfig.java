@@ -1,12 +1,14 @@
 package cn.laoshini.dk.domain;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
+import cn.laoshini.dk.constant.MessageFormatEnum;
 
 /**
  * @author fagarine
@@ -14,6 +16,7 @@ import cn.laoshini.dk.constant.GameServerProtocolEnum;
 @Getter
 @Setter
 @ToString
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class GameServerConfig {
@@ -39,6 +42,11 @@ public class GameServerConfig {
     private GameServerProtocolEnum protocol;
 
     /**
+     * 游戏通信消息格式，当康系统提供的可选方案有JSON格式、当康系统自定义消息格式、Protobuf消息格式
+     */
+    private MessageFormatEnum format;
+
+    /**
      * 连接最大空闲时间，单位：秒，超过该时间没有消息到达，将断开连接
      */
     private int idleTime;
@@ -47,5 +55,4 @@ public class GameServerConfig {
      * 使用TCP连接时，消息是否立即发送
      */
     private boolean tcpNoDelay;
-
 }

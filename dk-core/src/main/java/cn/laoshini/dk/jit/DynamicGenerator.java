@@ -8,10 +8,8 @@ import java.util.List;
 
 import cn.laoshini.dk.annotation.MessageHandle;
 import cn.laoshini.dk.constant.Constants;
-import cn.laoshini.dk.domain.ExecutorBean;
 import cn.laoshini.dk.domain.dto.HandlerExpDescriptorDTO;
 import cn.laoshini.dk.exception.JitException;
-import cn.laoshini.dk.function.VariousWaysManager;
 import cn.laoshini.dk.jit.compiler.DynamicCompiler;
 import cn.laoshini.dk.jit.generator.CustomDtoClassFileGenerator;
 import cn.laoshini.dk.jit.generator.HandlerClassFileGenerator;
@@ -20,7 +18,7 @@ import cn.laoshini.dk.jit.generator.NettyCustomDtoClassFileGenerator;
 import cn.laoshini.dk.jit.type.CompositeBean;
 import cn.laoshini.dk.jit.type.HandlerBean;
 import cn.laoshini.dk.manager.TypeUseManager;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.handler.IMessageHandler;
 import cn.laoshini.dk.net.msg.ICustomDto;
 import cn.laoshini.dk.util.CollectionUtil;
@@ -44,8 +42,6 @@ public class DynamicGenerator {
         File root = new File(FileUtil.getProjectPath(IClassFileGenerator.GENERATED_PATH));
         File[] files;
         if (root.exists() && root.isDirectory() && (files = root.listFiles()) != null) {
-            IMessageHandlerManager messageHandlerManager = VariousWaysManager
-                    .getCurrentImpl(IMessageHandlerManager.class);
             for (File file : files) {
                 if (file.getName().endsWith(Constants.CLASS_FILE_SUFFIX)) {
                     String fileName = file.getName();
@@ -54,10 +50,9 @@ public class DynamicGenerator {
                     Class<?> clazz = JIT_CLASS_LOADER.loadClass(file.getAbsolutePath(), className);
                     if (ICustomDto.class.isAssignableFrom(clazz)) {
                         TypeUseManager.registerCustomDtoClass((Class<? extends ICustomDto>) clazz);
-                    } else if (messageHandlerManager != null && IMessageHandler.class.isAssignableFrom(clazz)) {
-                        MessageHandle messageHandle = clazz.getAnnotation(MessageHandle.class);
-                        ExecutorBean<MessageHandle> executorBean = new ExecutorBean<>(messageHandle, null, clazz);
-                        messageHandlerManager.registerHandler(messageHandle.id(), executorBean);
+                    } else if (IMessageHandler.class.isAssignableFrom(clazz)) {
+                        MessageHandle annotation = clazz.getAnnotation(MessageHandle.class);
+                        MessageHandlerHolder.registerHandler(annotation.id(), clazz, annotation.allowGuestRequest());
                     }
                 }
             }

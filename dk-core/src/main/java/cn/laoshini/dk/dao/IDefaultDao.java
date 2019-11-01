@@ -66,6 +66,22 @@ public interface IDefaultDao {
     <EntityType> void saveRelationalEntityList(List<EntityType> beans);
 
     /**
+     * 更新数据
+     *
+     * @param bean 数据对象
+     * @param <EntityType> 数据类型
+     */
+    <EntityType> void updateEntity(EntityType bean);
+
+    /**
+     * 更新多条数据（仅用于关系型数据库）
+     *
+     * @param beans 数据对象集合
+     * @param <EntityType> 数据类型
+     */
+    <EntityType> void updateRelationalEntityList(List<EntityType> beans);
+
+    /**
      * 查询单条数据（关系数据库和键值对数据库通用）
      *
      * @param tableName 表名称，关系数据库使用

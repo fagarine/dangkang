@@ -10,6 +10,8 @@ public interface IMessage<Type> {
 
     String ID_METHOD = "getId";
 
+    String ID_FIELD = "MESSAGE_ID";
+
     /**
      * 返回消息id
      *

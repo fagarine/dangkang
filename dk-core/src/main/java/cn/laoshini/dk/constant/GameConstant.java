@@ -43,4 +43,25 @@ public class GameConstant {
      * 消息读取单帧数据（字节数组）最大长度，大小：1M
      */
     public static final int MAX_FRAME_LENGTH = 1048576;
+
+    /**
+     * JSON格式消息中，消息id的默认key
+     */
+    public static final String MESSAGE_ID_KEY = "messageId";
+
+    /**
+     * JSON格式消息中，消息内容数据的默认key
+     */
+    public static final String MESSAGE_DETAIL_KEY = "detail";
+
+    /**
+     * JSON格式消息中，消息扩展数据的默认key
+     */
+    public static final String MESSAGE_EXTENDS_KEY = "params";
+
+    /**
+     * JSON格式消息中，消息返回码的默认key
+     */
+    public static final String MESSAGE_CODE_KEY = "code";
+
 }

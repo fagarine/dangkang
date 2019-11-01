@@ -10,8 +10,8 @@ import com.google.protobuf.MessageLite;
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
 import cn.laoshini.dk.domain.GameServerConfig;
 import cn.laoshini.dk.exception.BusinessException;
-import cn.laoshini.dk.net.codec.IByteMessageDecoder;
-import cn.laoshini.dk.net.codec.IByteMessageEncoder;
+import cn.laoshini.dk.net.codec.INettyMessageDecoder;
+import cn.laoshini.dk.net.codec.INettyMessageEncoder;
 import cn.laoshini.dk.net.connect.IConnectClosedHandler;
 import cn.laoshini.dk.net.connect.IConnectExceptionHandler;
 import cn.laoshini.dk.net.connect.IConnectOpenedHandler;
@@ -22,6 +22,7 @@ import cn.laoshini.dk.net.server.InnerGameServerFactory;
 import cn.laoshini.dk.net.session.IMessageSender;
 import cn.laoshini.dk.net.session.ISessionCreator;
 import cn.laoshini.dk.server.AbstractGameServer;
+import cn.laoshini.dk.util.LogUtil;
 import cn.laoshini.dk.util.NetUtil;
 import cn.laoshini.dk.util.StringUtil;
 
@@ -48,9 +49,9 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
 
     private ISessionCreator<S> sessionCreator;
 
-    private IByteMessageDecoder<M> decoder;
+    private INettyMessageDecoder<M> decoder;
 
-    private IByteMessageEncoder<M> encoder;
+    private INettyMessageEncoder<M> encoder;
 
     private IConnectOpenedHandler<S> connectOpened;
 
@@ -80,13 +81,13 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
             throw new IllegalArgumentException("端口号已被占用:" + port);
         }
 
-        ClassLoader classLoader = getClass().getClassLoader();
-
         // 加载数据
         if (!dataLoaders.isEmpty()) {
             for (IGameDataLoader loader : dataLoaders) {
                 try {
+                    LogUtil.debug("开始执行数据加载：" + loader.name());
                     loader.load();
+                    LogUtil.debug("数据加载执行完成：" + loader.name());
                 } catch (Exception e) {
                     throw new BusinessException("load.data.error", "加载游戏数据出错, game:" + gameName, e);
                 }
@@ -165,6 +166,16 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     /**
+     * 设置游戏服使用Websocket协议通信
+     *
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> websocket() {
+        this.protocol = GameServerProtocolEnum.WEBSOCKET;
+        return self();
+    }
+
+    /**
      * 设置判定连接为空闲的时间（超过该时间没有响应，将断开连接），仅对TCP、UDP协议有效
      *
      * @param idleSeconds 秒
@@ -217,7 +228,7 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
      * @param decoder 解码器
      * @return 返回当前对象
      */
-    public GameServerRegisterAdaptor<S, M> setMessageDecode(IByteMessageDecoder<M> decoder) {
+    public GameServerRegisterAdaptor<S, M> setMessageDecode(INettyMessageDecoder<M> decoder) {
         this.decoder = decoder;
         return self();
     }
@@ -228,7 +239,7 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
      * @param encoder 消息编码器
      * @return 返回当前对象
      */
-    public GameServerRegisterAdaptor<S, M> setMessageEncode(IByteMessageEncoder<M> encoder) {
+    public GameServerRegisterAdaptor<S, M> setMessageEncode(INettyMessageEncoder<M> encoder) {
         this.encoder = encoder;
         return self();
     }
@@ -242,8 +253,8 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
      */
     public GameServerRegisterAdaptor<S, M> setProtobufCodec(MessageLite prototype,
             ExtensionRegistry extensionRegistry) {
-        this.decoder = (IByteMessageDecoder<M>) IByteMessageDecoder.newProtobufDecoder(prototype, extensionRegistry);
-        this.encoder = (IByteMessageEncoder<M>) IByteMessageEncoder.newProtobufEncoder();
+        //        this.decoder = (IByteMessageDecoder<M>) IByteMessageDecoder.newProtobufDecoder(prototype, extensionRegistry);
+        //        this.encoder = (IByteMessageEncoder<M>) IByteMessageEncoder.newProtobufEncoder();
         return self();
     }
 
@@ -324,7 +335,9 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
         if (serverId == 0) {
             serverId = SERVER_ID.getAndIncrement();
         }
-        return new GameServerConfig(serverId, gameName(), port(), protocol(), idleTime(), isTcpNoDelay());
+
+        return GameServerConfig.builder().id(serverId).name(gameName).port(port).protocol(protocol).idleTime(idleTime)
+                .tcpNoDelay(tcpNoDelay).build();
     }
 
     private GameServerRegisterAdaptor<S, M> self() {
@@ -367,12 +380,12 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     @Override
-    public IByteMessageDecoder<M> decoder() {
+    public INettyMessageDecoder<M> decoder() {
         return decoder;
     }
 
     @Override
-    public IByteMessageEncoder<M> encoder() {
+    public INettyMessageEncoder<M> encoder() {
         return encoder;
     }
 

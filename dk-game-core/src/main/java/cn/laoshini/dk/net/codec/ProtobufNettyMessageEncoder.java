@@ -1,22 +1,21 @@
 package cn.laoshini.dk.net.codec;
 
+import com.google.protobuf.Message;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.handler.codec.protobuf.ProtobufEncoder;
 
 import cn.laoshini.dk.domain.GameSubject;
-import cn.laoshini.dk.net.msg.BaseProtobufMessage;
 
 /**
- * ProtoBuf消息编码器
+ * Protobuf消息编码器
  *
  * @author fagarine
  */
-public class ProtoBufNettyMessageEncoder extends ProtobufEncoder
-        implements INettyMessageEncoder<BaseProtobufMessage.Base> {
+public class ProtobufNettyMessageEncoder<M extends Message> extends ProtobufEncoder implements INettyMessageEncoder<M> {
 
     @Override
-    public ByteBuf encode(BaseProtobufMessage.Base message, GameSubject subject) {
+    public ByteBuf encode(M message, GameSubject subject) {
         byte[] bytes = message.toByteArray();
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(bytes.length);

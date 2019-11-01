@@ -3,10 +3,12 @@ package cn.laoshini.dk.net.handler;
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.exception.MessageException;
-import cn.laoshini.dk.function.VariousWaysManager;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.executor.IOrderedExecutor;
+import cn.laoshini.dk.executor.OrderedQueuePoolExecutor;
+import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.net.msg.RespMessage;
+import cn.laoshini.dk.server.worker.MessageReceiveWorker;
 import cn.laoshini.dk.util.LogUtil;
 
 /**
@@ -18,8 +20,21 @@ public class MessageReceiveDispatcher {
     private MessageReceiveDispatcher() {
     }
 
-    private static IMessageHandlerManager messageHandlerManager = VariousWaysManager
-            .getCurrentImpl(IMessageHandlerManager.class);
+    private static IOrderedExecutor<Long> MESSAGE_EXECUTOR;
+
+    static {
+        MESSAGE_EXECUTOR = new OrderedQueuePoolExecutor("received-message", 3);
+    }
+
+    /**
+     * 接收到达的消息
+     *
+     * @param reqMessage 消息对象
+     * @param gameSubject 消息所属主体
+     */
+    public static void messageReceived(ReqMessage<Object> reqMessage, GameSubject gameSubject) {
+        MESSAGE_EXECUTOR.addTask(gameSubject.getSession().getId(), new MessageReceiveWorker(reqMessage, gameSubject));
+    }
 
     /**
      * 消息处理
@@ -27,34 +42,31 @@ public class MessageReceiveDispatcher {
      * @param reqMessage 进入消息
      * @param gameSubject 消息所属主体
      */
-    public static void dealMessage(ReqMessage reqMessage, GameSubject gameSubject) {
+    public static void dealMessage(ReqMessage<Object> reqMessage, GameSubject gameSubject) {
         try {
-            messageHandlerManager.doMessageHandlerAction(reqMessage, gameSubject);
+            MessageHandlerHolder.doMessageHandler(reqMessage, gameSubject);
         } catch (MessageException e) {
-            LogUtil.error(e.getMessage(), e);
+            RespMessage<Object> resp = buildErrorResponse(reqMessage.getId() + 1, e.getGameCode().getCode(),
+                    e.getMessage());
+            gameSubject.getSession().sendMessage(resp);
         } catch (Throwable t) {
             LogUtil.error(String.format("消息处理出现未知异常, message:%s", reqMessage), t);
+            RespMessage<Object> resp = buildErrorResponse(reqMessage.getId() + 1, GameCodeEnum.UNKNOWN_ERROR.getCode(),
+                    "未知错误");
+            gameSubject.getSession().sendMessage(resp);
         }
     }
 
-    /**
-     * 消息处理，该方法会保证消息处理按消息的到达先后顺序执行
-     *
-     * @param reqMessage 进入消息
-     * @param gameSubject 消息所属主体
-     */
-    public static void dealMessageSequential(ReqMessage reqMessage, GameSubject gameSubject) {
-        try {
-            messageHandlerManager.doMessageHandlerAction(reqMessage, gameSubject);
-        } catch (MessageException e) {
-            LogUtil.error(e.getMessage(), e);
-        } catch (Throwable t) {
-            LogUtil.error(String.format("消息处理出现未知异常, message:%s", reqMessage), t);
-        }
+    private static RespMessage<Object> buildErrorResponse(int respMessageId, int returnCode, String desc) {
+        RespMessage<Object> resp = new RespMessage<>();
+        resp.setId(respMessageId);
+        resp.setCode(returnCode);
+        resp.setParams(desc);
+        return resp;
     }
 
     /**
-     * 等待消息处理，并返回处理结果
+     * 等待消息处理，并返回处理结果，本方法只会尝试调用{@link IHttpMessageHandler#call(ReqMessage, GameSubject)}，请保证对应的handler实现了该方法
      * 注意：
      * <p>
      * 通过该方法传入的消息，将会由当前线程执行逻辑，并且无法保证一定按消息到达先后执行
@@ -64,14 +76,13 @@ public class MessageReceiveDispatcher {
      * @param gameSubject 消息所属主体
      * @return 返回客户端的消息
      */
-    public static RespMessage dealMessageAndBack(ReqMessage reqMessage, GameSubject gameSubject) {
+    public static RespMessage dealMessageAndBack(ReqMessage<Object> reqMessage, GameSubject gameSubject) {
         RespMessage resp = new RespMessage();
         try {
-            return messageHandlerManager.doMessageHandlerCall(reqMessage, gameSubject);
+            return MessageHandlerHolder.doMessageHandlerCall(reqMessage, gameSubject);
         } catch (MessageException e) {
-            LogUtil.error(e.getMessage(), e);
-            resp.setCode(e.getErrorCode().getCode());
-            resp.setParams(e.getErrorCode().getDesc());
+            resp.setCode(e.getGameCode().getCode());
+            resp.setParams(e.getGameCode().getDesc());
         } catch (Throwable t) {
             LogUtil.error(String.format("消息处理出现未知异常, message:%s", reqMessage), t);
             resp.setCode(GameCodeEnum.UNKNOWN_ERROR.getCode());

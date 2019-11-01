@@ -27,7 +27,7 @@ public class HttpGameServer extends AbstractGameServer {
      * @param subject 消息所属主体对象
      * @return 返回处理后的消息
      */
-    public RespMessage dealMessage(ReqMessage message, GameSubject subject) {
+    public RespMessage dealMessage(ReqMessage<Object> message, GameSubject subject) {
         LogUtil.c2sMessage("HTTP服务器收到消息:[{}], subject:[{}]", message, subject);
         return MessageReceiveDispatcher.dealMessageAndBack(message, subject);
     }

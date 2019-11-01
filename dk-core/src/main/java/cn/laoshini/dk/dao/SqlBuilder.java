@@ -120,7 +120,7 @@ public class SqlBuilder {
      * @return 返回表字段名称
      */
     public static String toColumnName(Class<?> entityType, String fieldName) {
-        if (entityType != null && entityType.isAssignableFrom(TableMapping.class)) {
+        if (entityType != null && entityType.isAnnotationPresent(TableMapping.class)) {
             TableMapping annotation = entityType.getAnnotation(TableMapping.class);
             if (annotation.columnFormat().equals(annotation.fieldFormat())) {
                 return fieldName;
@@ -342,22 +342,27 @@ public class SqlBuilder {
     public static DBTypeEnum getDBType() {
         if (dbType == null) {
             String dbDriver = SpringContextHolder.getProperty("dk.rdb.driver");
-            if ("com.mysql.cj.jdbc.Driver".equals(dbDriver) || "com.mysql.jdbc.Driver".equals(dbDriver)) {
-                // Mysql
-                dbType = DBTypeEnum.MYSQL;
-            } else if ("com.microsoft.sqlserver.jdbc.SQLServerDriver".equals(dbDriver)) {
-                // SQLServer 2005
-                dbType = DBTypeEnum.SQL_SERVER;
-            } else if ("oracle.jdbc.driver.OracleDriver".equals(dbDriver)) {
-                // oracle
-                dbType = DBTypeEnum.ORACLE;
-            } else if ("com.ibm.db2.jdbc.app.DB2Driver".equals(dbDriver)) {
-                // db2
-                dbType = DBTypeEnum.DB2;
-            }
-            throw new BusinessException("db.type.unknown", "系统不支持的数据库类型:" + dbDriver);
+            initDbType(dbDriver);
         }
         return dbType;
+    }
+
+    public static void initDbType(String dbDriver) {
+        if ("com.mysql.cj.jdbc.Driver".equals(dbDriver) || "com.mysql.jdbc.Driver".equals(dbDriver)) {
+            // Mysql
+            dbType = DBTypeEnum.MYSQL;
+        } else if ("com.microsoft.sqlserver.jdbc.SQLServerDriver".equals(dbDriver)) {
+            // SQLServer 2005
+            dbType = DBTypeEnum.SQL_SERVER;
+        } else if ("oracle.jdbc.driver.OracleDriver".equals(dbDriver)) {
+            // oracle
+            dbType = DBTypeEnum.ORACLE;
+        } else if ("com.ibm.db2.jdbc.app.DB2Driver".equals(dbDriver)) {
+            // db2
+            dbType = DBTypeEnum.DB2;
+        } else {
+            throw new BusinessException("db.type.unknown", "系统不支持的数据库类型:" + dbDriver);
+        }
     }
 
     private static String getFieldSqlValue(Object bean, Field field) {

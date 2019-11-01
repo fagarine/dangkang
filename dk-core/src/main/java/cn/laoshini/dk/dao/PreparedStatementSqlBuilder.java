@@ -1,6 +1,7 @@
 package cn.laoshini.dk.dao;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -49,18 +50,26 @@ public class PreparedStatementSqlBuilder {
         return StringUtil.isNotEmptyString(annotation.value()) ? annotation.value() : entityType.getSimpleName();
     }
 
-    private static void appendFieldsInsertSql(Class<?> entityType, StringBuilder fieldStr, StringBuilder valueStr) {
+    private static int appendFieldsInsertSql(Class<?> entityType, StringBuilder fieldStr, StringBuilder valueStr) {
         Field[] fields = entityType.getDeclaredFields();
-        for (int i = 0; i < fields.length; i++) {
-            if (i > 0) {
+        int count = 0;
+        for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            TableKey tableKey = field.getAnnotation(TableKey.class);
+            if (tableKey != null && tableKey.autoIncrement()) {
+                continue;
+            }
+
+            if (count++ > 0) {
                 fieldStr.append(COMMA);
                 valueStr.append(COMMA).append(" ");
             }
-
-            Field field = fields[i];
             fieldStr.append("`").append(getColumnName(entityType, field.getName())).append("`");
             valueStr.append(QM);
         }
+        return count;
     }
 
     /**
@@ -81,14 +90,21 @@ public class PreparedStatementSqlBuilder {
         StringBuilder valueStr = new StringBuilder();
 
         Class<?> entityType = entity.getClass();
-        appendFieldsInsertSql(entityType, fieldStr, valueStr);
+        int count = appendFieldsInsertSql(entityType, fieldStr, valueStr);
 
         Field[] fields = entityType.getDeclaredFields();
-        int[] types = new int[fields.length];
-        List<Object> params = new ArrayList<>(fields.length);
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
-            types[i] = SqlBuilder.toJdbcType(field.getType());
+        int[] types = new int[count];
+        List<Object> params = new ArrayList<>(count);
+        int i = 0;
+        for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            TableKey tableKey = field.getAnnotation(TableKey.class);
+            if (tableKey != null && tableKey.autoIncrement()) {
+                continue;
+            }
+            types[i++] = SqlBuilder.toJdbcType(field.getType());
             params.add(getFieldValue(entity, field));
         }
 
@@ -133,12 +149,29 @@ public class PreparedStatementSqlBuilder {
         }
 
         Field[] fields = entities.get(0).getClass().getDeclaredFields();
-        int count = fields.length * entities.size();
+        int count = 0;
+        for (Field field : fields) {
+            TableKey tableKey = field.getAnnotation(TableKey.class);
+            if (tableKey != null && tableKey.autoIncrement()) {
+                continue;
+            }
+            if (!Modifier.isStatic(field.getModifiers())) {
+                count++;
+            }
+        }
+        count = count * entities.size();
         int[] types = new int[count];
         List<Object> params = new ArrayList<>(count);
         int index = 0;
         for (E entity : entities) {
             for (Field field : fields) {
+                TableKey tableKey = field.getAnnotation(TableKey.class);
+                if (tableKey != null && tableKey.autoIncrement()) {
+                    continue;
+                }
+                if (Modifier.isStatic(field.getModifiers())) {
+                    continue;
+                }
                 types[index++] = SqlBuilder.toJdbcType(field.getType());
                 params.add(getFieldValue(entity, field));
             }
@@ -185,7 +218,12 @@ public class PreparedStatementSqlBuilder {
 
         Class<?> entityType = entity.getClass();
         Field[] fields = entityType.getDeclaredFields();
-        int count = fields.length;
+        int count = 0;
+        for (Field field : fields) {
+            if (!Modifier.isStatic(field.getModifiers())) {
+                count++;
+            }
+        }
         StringBuilder updateSql = new StringBuilder("UPDATE `").append(tableName).append("` SET ");
         StringBuilder valueStr = new StringBuilder(count << 4);
         StringBuilder conditionStr = new StringBuilder(keys.size() << 4);
@@ -193,11 +231,14 @@ public class PreparedStatementSqlBuilder {
         int[] types = new int[count];
         List<Object> params = new ArrayList<>(count);
         for (int i = 0; i < fields.length; i++) {
-            if (i > 0) {
-                valueStr.append(COMMA);
+            Field field = fields[i];
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
             }
 
-            Field field = fields[i];
+            if (valueStr.length() > 0) {
+                valueStr.append(COMMA);
+            }
             types[i] = SqlBuilder.toJdbcType(field.getType());
             params.add(getFieldValue(entity, field));
 

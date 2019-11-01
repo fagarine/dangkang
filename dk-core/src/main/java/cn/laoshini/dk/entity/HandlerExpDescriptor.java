@@ -17,6 +17,8 @@ import cn.laoshini.dk.dao.TableMapping;
 @TableMapping(value = InnerTableNameConst.HANDLER_EXPRESSION, description = "消息处理Handler逻辑表达式")
 public class HandlerExpDescriptor implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     @TableKey
     private Integer id;
 

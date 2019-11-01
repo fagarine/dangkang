@@ -22,6 +22,8 @@ import cn.laoshini.dk.dao.TableMapping;
 @TableMapping(value = InnerTableNameConst.MIXED_GAME_SERVER_INFO, description = "混合类游戏服信息配置表")
 public class MixedGameServerInfo implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     /**
      * 游戏服所属游戏id，放在serverId前面是为了使用键值对数据库时，生成key时gameId在前面
      */

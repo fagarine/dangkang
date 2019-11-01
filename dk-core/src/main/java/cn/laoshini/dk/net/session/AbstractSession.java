@@ -3,6 +3,9 @@ package cn.laoshini.dk.net.session;
 import java.util.HashMap;
 import java.util.Map;
 
+import cn.laoshini.dk.constant.GameCodeEnum;
+import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.CollectionUtil;
 
 /**
@@ -14,6 +17,8 @@ import cn.laoshini.dk.util.CollectionUtil;
 public abstract class AbstractSession<T> {
 
     private static final String SESSION_ID_KEY = "SESSION ID";
+
+    private static final String GAME_SUBJECT_KEY = "GAME SUBJECT";
 
     private static final String HTTP_CONNECT_KEY = "HTTP CONNECT";
 
@@ -52,6 +57,44 @@ public abstract class AbstractSession<T> {
      * @param message 消息内容
      */
     public abstract void sendMessage(Object message);
+
+    /**
+     * 将传入数据作为{@link RespMessage}消息的内容，拼装成一个{@link RespMessage}对象发送
+     *
+     * @param messageId 消息id
+     * @param returnCode 消息返回码
+     * @param data 消息内容
+     * @param params 扩展内容
+     */
+    public void sendAsRespMessage(int messageId, int returnCode, Object data, String params) {
+        RespMessage<Object> rs = new RespMessage<>();
+        rs.setId(messageId);
+        rs.setCode(returnCode);
+        rs.setParams(params);
+        rs.setData(data);
+        sendMessage(rs);
+    }
+
+    /**
+     * 将传入数据拼装成一个{@link RespMessage}消息对象发送
+     *
+     * @param messageId 消息id
+     * @param data 消息内容
+     */
+    public void sendAsRespMessage(int messageId, Object data) {
+        sendAsRespMessage(messageId, GameCodeEnum.OK.getCode(), data, null);
+    }
+
+    /**
+     * 将传入数据拼装成一个返回错误提示的{@link RespMessage}消息对象发送
+     *
+     * @param messageId 消息id
+     * @param errorCode 错误码
+     * @param errorMessage 提示信息
+     */
+    public void sendAsErrorRespMessage(int messageId, int errorCode, String errorMessage) {
+        sendAsRespMessage(messageId, errorCode, null, errorMessage);
+    }
 
     public T getChannel() {
         return channel;
@@ -93,6 +136,14 @@ public abstract class AbstractSession<T> {
 
     public Long getId() {
         return containsAttr(SESSION_ID_KEY) ? (Long) keyToAttrs.get(SESSION_ID_KEY) : 0L;
+    }
+
+    public void setSubject(GameSubject subject) {
+        keyToAttrs.put(GAME_SUBJECT_KEY, subject);
+    }
+
+    public GameSubject getSubject() {
+        return (GameSubject) keyToAttrs.get(GAME_SUBJECT_KEY);
     }
 
     public void setHttpConnect(boolean isKeepAlive) {

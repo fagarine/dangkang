@@ -119,12 +119,12 @@ public class SpringUtils {
         for (Field field : fields) {
             if (field.isAnnotationPresent(Autowired.class)) {
                 if (field.isAnnotationPresent(Qualifier.class)) {
-                    depends.add(field.getAnnotation(Qualifier.class).value());
+                    depends.add(getDependName(field, field.getAnnotation(Qualifier.class).value()));
                 } else {
                     depends.add(field.getName());
                 }
             } else if (field.isAnnotationPresent(Resource.class)) {
-                depends.add(field.getAnnotation(Resource.class).name());
+                depends.add(getDependName(field, field.getAnnotation(Resource.class).name()));
             }
         }
 
@@ -138,6 +138,13 @@ public class SpringUtils {
             }
         }
         return depends.toArray(new String[0]);
+    }
+
+    private static String getDependName(Field field, String aliasName) {
+        if (StringUtil.isNotEmptyString(aliasName)) {
+            return aliasName;
+        }
+        return field.getName();
     }
 
 }

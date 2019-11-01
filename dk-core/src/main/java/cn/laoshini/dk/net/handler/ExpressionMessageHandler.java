@@ -21,7 +21,7 @@ import cn.laoshini.dk.net.msg.RespMessage;
  *
  * @author fagarine
  */
-public class ExpressionMessageHandler implements IMessageHandler {
+public class ExpressionMessageHandler implements IHttpMessageHandler {
 
     /**
      * Handler的逻辑表达式详情

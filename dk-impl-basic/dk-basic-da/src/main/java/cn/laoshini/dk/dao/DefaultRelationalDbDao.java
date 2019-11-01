@@ -1,6 +1,7 @@
 package cn.laoshini.dk.dao;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -80,13 +81,21 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         Object value;
         Field[] fields = type.getDeclaredFields();
         for (Field field : fields) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+
             String columnName = SqlBuilder.toColumnName(type, field.getName());
-            if (field.getType().equals(Date.class)) {
-                // java.sql.Date对象转为java.util.Date对象
-                java.sql.Date date = rs.getDate(columnName);
-                value = date != null ? new Date(date.getTime()) : null;
-            } else {
-                value = rs.getObject(columnName, field.getType());
+            try {
+                if (field.getType().equals(Date.class)) {
+                    // java.sql.Date对象转为java.util.Date对象
+                    java.sql.Date date = rs.getDate(columnName);
+                    value = date != null ? new Date(date.getTime()) : null;
+                } else {
+                    value = rs.getObject(columnName, field.getType());
+                }
+            } catch (SQLException e) {
+                continue;
             }
 
             boolean access = field.isAccessible();

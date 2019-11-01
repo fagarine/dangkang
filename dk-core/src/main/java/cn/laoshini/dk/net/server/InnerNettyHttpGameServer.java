@@ -1,12 +1,5 @@
 package cn.laoshini.dk.net.server;
 
-import java.util.List;
-
-import cn.laoshini.dk.net.session.AbstractSession;
-import cn.laoshini.dk.net.session.NettyHttpSession;
-import cn.laoshini.dk.register.GameServerRegisterAdaptor;
-import cn.laoshini.dk.util.LogUtil;
-
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -28,12 +21,20 @@ import io.netty.handler.codec.http.HttpServerExpectContinueHandler;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.LastHttpContent;
 
+import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.net.session.AbstractSession;
+import cn.laoshini.dk.net.session.NettyHttpSession;
+import cn.laoshini.dk.register.GameServerRegisterAdaptor;
+import cn.laoshini.dk.util.LogUtil;
+
 /**
  * @author fagarine
  */
 public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
 
     private static final String FAVICON_ICO = "/favicon.ico";
+
+    private EventLoopGroup bossGroup;
 
     public InnerNettyHttpGameServer(GameServerRegisterAdaptor<S, M> gameServerRegister) {
         super(gameServerRegister, "netty-http-server");
@@ -44,38 +45,50 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
         super.run();
 
         int port = getPort();
-        EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
         try {
+            LogUtil.info("HTTP游戏 [{}] 开始启动...", getGameName());
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 1024)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         protected void initChannel(SocketChannel ch) throws Exception {
                             ChannelPipeline p = ch.pipeline();
-                            // 或者使用HttpRequestDecoder & HttpResponseEncoder
+                            // 使用HttpRequestDecoder & HttpResponseEncoder
                             p.addLast(new HttpServerCodec());
                             // 在处理POST消息体时需要加上
                             p.addLast(new HttpObjectAggregator(1024 * 1024));
                             p.addLast(new HttpServerExpectContinueHandler());
-                            p.addLast(new DefaultHttpServerInitializer());
+                            p.addLast(new DefaultHttpServerHandler());
                         }
                     });
 
             Channel ch = b.bind(port).sync().channel();
+            LogUtil.start("HTTP游戏 [{}] 成功绑定端口 [{}]，启动成功", getGameName(), port);
 
             ch.closeFuture().sync();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            throw new BusinessException("http.start.error", String.format("HTTP游戏服 [%s] 启动异常", getServerConfig()));
         } finally {
+            bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
     }
 
-    private class DefaultHttpServerInitializer extends SimpleChannelInboundHandler<HttpObject> {
+    private class DefaultHttpServerHandler extends SimpleChannelInboundHandler<HttpObject> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
+            if (shutdown.get()) {
+                return;
+            }
+
+            if (pause.get()) {
+                // 业务暂停时，停止接受客户端消息，或返回提示信息，或考虑其他的处理方式
+                return;
+            }
+
             if (msg instanceof HttpRequest) {
                 HttpRequest request = (HttpRequest) msg;
                 String uri = request.uri();
@@ -87,8 +100,6 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
 
                 if (msg instanceof HttpContent) {
                     ByteBuf in = ((HttpContent) msg).content();
-                    byte[] data = new byte[in.readableBytes()];
-                    in.readBytes(data);
                     if (msg instanceof LastHttpContent) {
                         boolean keepAlive = HttpUtil.isKeepAlive(request);
                         Channel channel = ctx.channel();
@@ -107,11 +118,9 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
                         S session = getGameServerRegister().sessionCreator().newSession(innerSession);
 
                         // 消息解码
-                        List<M> messages = getGameServerRegister().decoder().decode(data, 0, data.length);
-                        for (M message : messages) {
-                            // 消息分发
-                            dispatchMessage(session, message);
-                        }
+                        M message = getGameServerRegister().decoder().decode(in, null);
+                        // 消息分发
+                        dispatchMessage(session, message);
                     }
                 }
             }
@@ -134,16 +143,22 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
             super.channelInactive(ctx);
 
             Long channelId = getChannelId(ctx.channel());
-            AbstractSession innerSession = removeInnerSession(channelId);
-            if (innerSession != null) {
-                innerSession.close();
-            }
 
             S session = removeSession(channelId);
             if (session != null && getGameServerRegister().connectClosedOperation() != null) {
                 getGameServerRegister().connectClosedOperation().onDisconnected(session);
             }
+            AbstractSession innerSession = removeInnerSession(channelId);
+            if (innerSession != null) {
+                innerSession.close();
+            }
         }
+    }
+
+    @Override
+    protected void shutdown0() {
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
     }
 
 }

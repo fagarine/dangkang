@@ -154,7 +154,7 @@ public class ConfigurableFunctionInjector implements IConfigurableFunctionInject
             Field field = bean.getClass().getDeclaredField(fieldName);
 
             // 只注入未赋值的
-            if (ReflectUtil.getFieldValue(bean, field) != null) {
+            if (ReflectUtil.getFieldValue(bean, field) == null) {
                 injectFunction(bean, field);
             }
         } catch (NoSuchFieldException e) {

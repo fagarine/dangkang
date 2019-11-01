@@ -20,7 +20,7 @@ import cn.laoshini.dk.entity.HandlerExpDescriptor;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.expression.ExpressionLogicFactory;
 import cn.laoshini.dk.expression.IExpressionLogic;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.handler.ExpressionMessageHandler;
 import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.net.msg.RespMessage;
@@ -37,10 +37,7 @@ public class HandlerExpressionManager {
     @FunctionDependent(nullable = true, afterExecute = "loadHandlerExpression")
     private IDefaultDao defaultDao;
 
-    @FunctionDependent
-    private IMessageHandlerManager messageHandlerManager;
-
-    @Value("#{dangKangGenerateProperties.handler}")
+    @Value("${dk.generate.handler:#{dangKangGenerateProperties.handler}}")
     private boolean generateHandler;
 
     /**
@@ -64,13 +61,13 @@ public class HandlerExpressionManager {
         expLogicMap.put(descriptorVO.getMessageId(), expHandler);
 
         // 注册到Handler管理类
-        messageHandlerManager.registerExpHandler(descriptorVO.getMessageId(), expHandler);
+        MessageHandlerHolder.registerExpHandler(descriptorVO.getMessageId(), expHandler);
     }
 
     private void unregisterExpHandler(int messageId) {
         expLogicMap.remove(messageId);
 
-        messageHandlerManager.unregisterHandler(messageId);
+        MessageHandlerHolder.unregisterHandler(messageId);
     }
 
     public void runExpHandlerAction(ReqMessage req, GameSubject subject) {

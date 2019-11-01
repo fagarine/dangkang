@@ -28,19 +28,19 @@ import cn.laoshini.dk.exception.BusinessException;
 @Setter
 @Configuration
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@ConditionalOnPropertyExists(prefix = "dk.rdb", name = { "driver", "url", "username", "password" })
+@ConditionalOnPropertyExists(prefix = "dk.rdb", name = { "url", "username", "password" })
 public class InnerGameDataSourceConfig {
 
-    @Value("#{dangKangRdbProperties.driver}")
+    @Value("${dk.rdb.driver}")
     private String driverClass;
 
-    @Value("#{dangKangRdbProperties.url}")
+    @Value("${dk.rdb.url}")
     private String url;
 
-    @Value("#{dangKangRdbProperties.username}")
+    @Value("${dk.rdb.username}")
     private String user;
 
-    @Value("#{dangKangRdbProperties.password}")
+    @Value("${dk.rdb.password}")
     private String password;
 
     @Bean(name = "innerGameDataSource")
@@ -48,6 +48,7 @@ public class InnerGameDataSourceConfig {
         try {
             @SuppressWarnings("unchecked")
             Class<? extends Driver> clazz = (Class<? extends Driver>) Class.forName(driverClass);
+            SqlBuilder.initDbType(driverClass);
             return new SimpleDriverDataSource(clazz.newInstance(), url, user, password);
         } catch (ClassNotFoundException | IllegalAccessException | InstantiationException e) {
             throw new BusinessException("db.driver.error", "默认DAO配置的SQL驱动类不正确:" + driverClass);

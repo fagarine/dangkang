@@ -216,7 +216,7 @@ public class ClassUtil {
                                         String fullClassName = packageName + '.' + className;
                                         try {
                                             Class<?> clazz = classLoader.loadClass(fullClassName);
-                                            if (filter != null && filter.test(clazz)) {
+                                            if (filter == null || filter.test(clazz)) {
                                                 classList.add(clazz);
                                             }
                                         } catch (Throwable e) {
@@ -272,7 +272,7 @@ public class ClassUtil {
                         String fullClassName = packageName + '.' + className;
                         try {
                             Class<?> clazz = classLoader.loadClass(name);
-                            if (filter != null && filter.test(clazz)) {
+                            if (filter == null || filter.test(clazz)) {
                                 classList.add(clazz);
                             }
                         } catch (Throwable e) {
@@ -326,7 +326,7 @@ public class ClassUtil {
                     // 添加到集合中去
                     String name = StringUtil.isEmptyString(packageName) ? className : packageName + "." + className;
                     Class<?> clazz = classLoader.loadClass(name);
-                    if (filter != null && filter.test(clazz)) {
+                    if (filter == null || filter.test(clazz)) {
                         classes.add(clazz);
                     }
                 } catch (Throwable e) {

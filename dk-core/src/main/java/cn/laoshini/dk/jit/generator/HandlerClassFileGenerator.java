@@ -7,7 +7,6 @@ import com.alibaba.fastjson.JSON;
 import org.springframework.beans.BeansException;
 import org.springframework.util.StringUtils;
 
-import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.annotation.MessageHandle;
 import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.constant.BeanTypeEnum;
@@ -20,7 +19,7 @@ import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.jit.type.HandlerBean;
 import cn.laoshini.dk.jit.type.ITypeBean;
 import cn.laoshini.dk.manager.HandlerExpressionManager;
-import cn.laoshini.dk.net.IMessageHandlerManager;
+import cn.laoshini.dk.net.handler.IHttpMessageHandler;
 import cn.laoshini.dk.net.handler.IMessageHandler;
 import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.net.msg.RespMessage;
@@ -36,9 +35,6 @@ public class HandlerClassFileGenerator extends AbstractClassFileGenerator {
     private List<Class<?>> depends;
 
     private HandlerExpDescriptorDTO descriptor;
-
-    @FunctionDependent
-    private IMessageHandlerManager messageHandlerManager;
 
     public HandlerClassFileGenerator(HandlerBean handlerBean, ClassLoader classLoader,
             HandlerExpDescriptorDTO descriptor) {
@@ -59,6 +55,7 @@ public class HandlerClassFileGenerator extends AbstractClassFileGenerator {
         importStr.append(IMT).append(MessageException.class.getName()).append(";").append(LS);
         importStr.append(IMT).append(HandlerExpressionManager.class.getName()).append(";").append(LS);
         importStr.append(IMT).append(IMessageHandler.class.getName()).append(";").append(LS);
+        importStr.append(IMT).append(IHttpMessageHandler.class.getName()).append(";").append(LS);
         importStr.append(IMT).append(ReqMessage.class.getName()).append(";").append(LS);
         importStr.append(IMT).append(RespMessage.class.getName()).append(";").append(LS);
         importStr.append(IMT).append(StringUtil.class.getName()).append(";").append(LS);
@@ -69,11 +66,6 @@ public class HandlerClassFileGenerator extends AbstractClassFileGenerator {
     protected StringBuilder buildJavaFileContent() {
         StringBuilder content = new StringBuilder();
         HandlerBean handlerBean = (HandlerBean) compositeBean;
-
-        // 检查id
-        //        if (messageHandlerManager.exists(messageId)) {
-        //            throw new JitException("handler.id.exists", "已有Handler注册了消息id:" + messageId);
-        //        }
 
         // 检查依赖项
         checkHandlerDepends(handlerBean);
@@ -89,7 +81,14 @@ public class HandlerClassFileGenerator extends AbstractClassFileGenerator {
         content.append(")").append(LS);
 
         // 类声明
-        content.append("public class ").append(className).append(IMP).append("IMessageHandler");
+        String protocol = handlerBean.getProtocol();
+        boolean isHttpHandler = isHttpHandler(protocol);
+        content.append("public class ").append(className).append(IMP);
+        if (isHttpHandler) {
+            content.append("IHttpMessageHandler");
+        } else {
+            content.append("IMessageHandler");
+        }
         appendDataType(content, handlerBean.getDataType());
         content.append(" {").append(PG);
 
@@ -108,19 +107,14 @@ public class HandlerClassFileGenerator extends AbstractClassFileGenerator {
         }
 
         // handler方法实现
-        String protocol = handlerBean.getProtocol();
-        content.append(ORI).append("public RespMessage call(ReqMessage");
-        appendDataType(content, handlerBean.getDataType());
-        content.append(" req, ").append(GameSubject.class.getSimpleName()).append(" subject) throws MessageException {")
-                .append(LS);
-        boolean isHttpHandler = isHttpHandler(protocol);
         if (isHttpHandler) {
-            content.append(buildLogicText(true));
-        } else {
-            content.append(I2).append("throw new MessageException (GameCodeEnum.UNSUPPORTED_HTTP_PROTOCOL,")
-                    .append(" \"handler.protocol.unsupported\", \"该Handler不支持来自HTTP的消息请求\");");
+            content.append(ORI).append("public RespMessage call(ReqMessage");
+            appendDataType(content, handlerBean.getDataType());
+            content.append(" req, ").append(GameSubject.class.getSimpleName())
+                    .append(" subject) throws MessageException {").append(LS);
+            content.append(buildLogicText(true)).append(END);
         }
-        content.append(END).append(ORI).append("public void action(ReqMessage");
+        content.append(ORI).append("public void action(ReqMessage");
         appendDataType(content, handlerBean.getDataType());
         content.append(" req, ").append(GameSubject.class.getSimpleName()).append(" subject) throws MessageException {")
                 .append(LS);

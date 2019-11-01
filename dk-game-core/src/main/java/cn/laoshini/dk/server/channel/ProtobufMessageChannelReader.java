@@ -10,7 +10,7 @@ import cn.laoshini.dk.util.ByteMessageUtil;
  *
  * @author fagarine
  */
-public class ProtoBufMessageChannelReader implements INettyChannelReader<BaseProtobufMessage.Base> {
+public class ProtobufMessageChannelReader implements INettyChannelReader<BaseProtobufMessage.Base> {
 
     private LastChannelReader delegate = new LastChannelReader();
 

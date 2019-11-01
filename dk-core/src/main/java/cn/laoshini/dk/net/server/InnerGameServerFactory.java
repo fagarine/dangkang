@@ -22,6 +22,9 @@ public class InnerGameServerFactory {
             case HTTP:
                 return new InnerNettyHttpGameServer<>(gameServerRegister);
 
+            case WEBSOCKET:
+                return new InnerNettyWebsocketGameServer<>(gameServerRegister);
+
             default:
                 throw new BusinessException("not.supported.protocol", "不支持的游戏服务器通信协议:" + gameServerRegister.protocol());
         }

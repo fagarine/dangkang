@@ -108,4 +108,9 @@ public class Constants {
      */
     public static final String START_ARGS_RESOURCE_KEY = "START ARGS RESOURCE KEY";
 
+    /**
+     * 记录在资源中心的，配置项文件路径参数对应的可key
+     */
+    public static final String PROPERTY_RESOURCE_KEY = "PROPERTY RESOURCE KEY";
+
 }

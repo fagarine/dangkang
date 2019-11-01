@@ -7,28 +7,43 @@ import cn.laoshini.dk.constant.GameCodeEnum;
  */
 public class MessageException extends DkRuntimeException {
 
-    private GameCodeEnum errorCode;
+    private GameCodeEnum gameCode;
 
-    public MessageException(GameCodeEnum errorCode, String errorKey, String message) {
+    private int errorCode;
+
+    public MessageException(GameCodeEnum gameCode, String errorKey, String message) {
         super(errorKey, message);
-        this.errorCode = errorCode;
+        this.gameCode = gameCode;
     }
 
-    public MessageException(GameCodeEnum errorCode, String message, Throwable cause) {
+    public MessageException(GameCodeEnum gameCode, String message, Throwable cause) {
         super(message, cause);
-        this.errorCode = errorCode;
+        this.gameCode = gameCode;
     }
 
-    public MessageException(GameCodeEnum errorCode, String errorKey, String message, Throwable cause) {
+    public MessageException(GameCodeEnum gameCode, String errorKey, String message, Throwable cause) {
         super(errorKey, message, cause);
+        this.gameCode = gameCode;
+    }
+
+    public MessageException(int errorCode, String message) {
+        super("game.message.exception", message);
         this.errorCode = errorCode;
     }
 
-    public GameCodeEnum getErrorCode() {
+    public GameCodeEnum getGameCode() {
+        return gameCode;
+    }
+
+    public void setGameCode(GameCodeEnum gameCode) {
+        this.gameCode = gameCode;
+    }
+
+    public int getErrorCode() {
         return errorCode;
     }
 
-    public void setErrorCode(GameCodeEnum errorCode) {
+    public void setErrorCode(int errorCode) {
         this.errorCode = errorCode;
     }
 }

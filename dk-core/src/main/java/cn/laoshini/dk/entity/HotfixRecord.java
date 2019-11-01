@@ -22,6 +22,8 @@ import cn.laoshini.dk.dao.TableMapping;
 @TableMapping(value = InnerTableNameConst.HOTFIX_RECORD, description = "热修复记录")
 public class HotfixRecord implements Serializable {
 
+    private static final long serialVersionUID = 1L;
+
     @TableKey
     private int id;
 

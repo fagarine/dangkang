@@ -5,7 +5,6 @@ import java.util.Properties;
 
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.StandardEnvironment;
@@ -43,9 +42,13 @@ public class SpringContextHolder {
         instance.allowOverriding = beanFactory.isAllowBeanDefinitionOverriding();
     }
 
+    public static boolean isInitialized() {
+        return getContext() != null;
+    }
+
     public static DefaultListableBeanFactory getDefaultListableBeanFactory() {
-        GenericApplicationContext context = (GenericApplicationContext) getContext();
-        return context.getDefaultListableBeanFactory();
+        DkApplicationContext context = (DkApplicationContext) getContext();
+        return (DefaultListableBeanFactory) context.getBeanFactory();
     }
 
     public static StandardEnvironment getEnvironment() {

@@ -16,6 +16,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.Attribute;
 
 import cn.laoshini.dk.constant.AttributeKeyConstant;
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
@@ -26,7 +27,9 @@ import cn.laoshini.dk.eventbus.EventMgr;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.net.codec.INettyMessageDecoder;
 import cn.laoshini.dk.net.codec.INettyMessageEncoder;
+import cn.laoshini.dk.net.session.NettySession;
 import cn.laoshini.dk.server.channel.INettyChannelReader;
+import cn.laoshini.dk.util.ChannelUtil;
 import cn.laoshini.dk.util.LogUtil;
 import cn.laoshini.dk.util.NetUtil;
 
@@ -191,7 +194,16 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
         @Override
         public void channelActive(ChannelHandlerContext ctx) throws Exception {
             super.channelActive(ctx);
-            LogUtil.session("建立连接成功:[{}]", ctx.channel());
+            Channel channel = ctx.channel();
+            Attribute<Player> attr = channel.attr(AttributeKeyConstant.PLAYER);
+            Player player = new Player();
+            NettySession session = new NettySession(channel);
+            long channelId = ChannelUtil.channel2Id(channel);
+            session.setId(channelId);
+            session.setSubject(player);
+            player.setSession(session);
+            attr.set(player);
+            LogUtil.session("连接建立:[{}]", ctx.channel());
         }
 
         @Override
@@ -201,7 +213,7 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
             if (player != null) {
                 EventMgr.getInstance().post(new ChannelCloseEvent(player));
             }
-            LogUtil.session("断开连接成功:[{}]", ctx.channel());
+            LogUtil.session("连接断开:[{}]", ctx.channel());
         }
 
         @Override
