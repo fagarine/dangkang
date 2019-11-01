@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metadata>
   <groupId>cn.laoshini.dk</groupId>
-  <artifactId>dk-autoconfigure</artifactId>
+  <artifactId>dk-core</artifactId>
   <versioning>
     <versions>
       <version>1.0.0-SNAPSHOT</version>
     </versions>
-    <lastUpdated>20191101100412</lastUpdated>
+    <lastUpdated>20191101100516</lastUpdated>
   </versioning>
 </metadata>
