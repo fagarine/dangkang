@@ -9,9 +9,12 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>dk-basic-da</artifactId>
-    <description>提供数据访问相关功能的基础实现</description>
+    <artifactId>dk-basic-excel</artifactId>
+    <description>提供基础的excel读写功能</description>
 
+    <properties>
+        <poi.version>4.0.1</poi.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>cn.laoshini.dk</groupId>
@@ -20,15 +23,21 @@
         </dependency>
 
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-jdbc</artifactId>
-            <version>${spring.version}</version>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>org.iq80.leveldb</groupId>
-            <artifactId>leveldb</artifactId>
-            <version>0.10</version>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>${poi.version}</version>
         </dependency>
     </dependencies>
 
