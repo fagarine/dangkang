@@ -56,10 +56,6 @@ public interface IEntityRegister extends IFunctionRegister {
             }
 
             IEntityClassManager manager = VariousWaysManager.getCurrentImpl(IEntityClassManager.class);
-            if (manager == null) {
-                throw new BusinessException("entity.manager.empty", "要使用系统自动扫描注册实体类，IEntityClassManager的实现对象不能为空");
-            }
-
             Function<Class<?>, String> tableNameReader = tableNameReader();
             List<Class<?>> classes = entityScanner.findClasses(classLoader);
             for (Class<?> clazz : classes) {
@@ -72,6 +68,28 @@ public interface IEntityRegister extends IFunctionRegister {
     }
 
     /**
+     * 用户手动注册多个实体类，使用本方法，必须保证{@link #tableNameReader()}不为空，并能通过其读取到类对应的表名
+     *
+     * @param entityClasses 要注册的实体类
+     * @return 返回当前对象，用于fluent风格编程
+     */
+    default IEntityRegister registerEntityClasses(List<Class<?>> entityClasses) {
+        if (CollectionUtil.isEmpty(entityClasses)) {
+            return this;
+        }
+
+        IEntityClassManager manager = VariousWaysManager.getCurrentImpl(IEntityClassManager.class);
+        Function<Class<?>, String> tableNameReader = tableNameReader();
+        for (Class<?> clazz : entityClasses) {
+            String tableName = tableNameReader.apply(clazz);
+            if (StringUtil.isNotEmptyString(tableName)) {
+                manager.registerEntityClass(tableName, clazz);
+            }
+        }
+        return this;
+    }
+
+    /**
      * 用户手动注册单个注册实体类
      *
      * @param tableName 表名
@@ -79,11 +97,7 @@ public interface IEntityRegister extends IFunctionRegister {
      * @return 返回当前对象，用于fluent风格编程
      */
     default IEntityRegister registerEntityClass(String tableName, Class<?> entityClass) {
-        IEntityClassManager manager = VariousWaysManager.getCurrentImpl(IEntityClassManager.class);
-        if (manager == null) {
-            throw new BusinessException("entity.manager.empty", "要使用系统实体类管理功能，IEntityClassManager的实现对象不能为空");
-        }
-        manager.registerEntityClass(tableName, entityClass);
+        VariousWaysManager.getCurrentImpl(IEntityClassManager.class).registerEntityClass(tableName, entityClass);
         return this;
     }
 
@@ -95,11 +109,7 @@ public interface IEntityRegister extends IFunctionRegister {
      */
     default IEntityRegister registerEntityClasses(Map<String, Class<?>> entityClassMap) {
         if (CollectionUtil.isNotEmpty(entityClassMap)) {
-            IEntityClassManager manager = VariousWaysManager.getCurrentImpl(IEntityClassManager.class);
-            if (manager == null) {
-                throw new BusinessException("entity.manager.empty", "要使用系统实体类管理功能，IEntityClassManager的实现对象不能为空");
-            }
-            manager.batchRegister(entityClassMap);
+            VariousWaysManager.getCurrentImpl(IEntityClassManager.class).batchRegister(entityClassMap);
         }
         return this;
     }

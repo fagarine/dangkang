@@ -2,6 +2,7 @@ package cn.laoshini.dk.manager;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -14,6 +15,8 @@ import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.constant.HotfixResultEnum;
 import cn.laoshini.dk.dao.IDefaultDao;
 import cn.laoshini.dk.domain.common.HotfixFile;
+import cn.laoshini.dk.domain.query.Page;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 import cn.laoshini.dk.entity.HotfixRecord;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.util.FileUtil;
@@ -29,7 +32,7 @@ public class HotfixManager {
     @FunctionDependent(nullable = true)
     private IDefaultDao defaultDao;
 
-    @Value("${dk.hotfix:#{dangKangBasicProperties.hotfix}}")
+    @Value("${dk.hotfix:/hotfix}")
     private String hotfixDir;
 
     /**
@@ -117,5 +120,13 @@ public class HotfixManager {
         if (defaultDao != null) {
             defaultDao.saveRelationalEntityList(records);
         }
+    }
+
+    public Page<HotfixRecord> searchHistoryPage(PageQueryCondition condition) {
+        if (defaultDao == null) {
+            return new Page<>(condition.getPageNo(), condition.getPageSize(), 0, Collections.emptyList());
+        }
+
+        return defaultDao.selectEntityByPage(HotfixRecord.class, condition);
     }
 }

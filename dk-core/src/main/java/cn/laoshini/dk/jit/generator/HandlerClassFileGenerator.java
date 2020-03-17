@@ -14,6 +14,8 @@ import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
 import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.domain.dto.HandlerExpDescriptorDTO;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.JitException;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.jit.type.HandlerBean;
@@ -21,8 +23,6 @@ import cn.laoshini.dk.jit.type.ITypeBean;
 import cn.laoshini.dk.manager.HandlerExpressionManager;
 import cn.laoshini.dk.net.handler.IHttpMessageHandler;
 import cn.laoshini.dk.net.handler.IMessageHandler;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.StringUtil;
 
 /**

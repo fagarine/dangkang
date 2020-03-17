@@ -1,8 +1,10 @@
 package cn.laoshini.dk.module.registry;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.jar.JarFile;
 
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.register.IClassScanner;
@@ -14,20 +16,48 @@ import cn.laoshini.dk.register.Registers;
  *
  * @author fagarine
  */
-class ModuleMessageHandlerRegistry extends AbstractModuleRegistry {
+class ModuleMessageHandlerRegistry extends AbstractRecoverableModuleRegistry {
+
+    private Map<IMessageHandlerRegister, List<Class<?>>> handlerClassesMap = new LinkedHashMap<>();
 
     ModuleMessageHandlerRegistry(ModuleLoaderContext context) {
         super(context);
     }
 
     @Override
-    public void register(JarFile jarFile) {
+    public void prepareRegister(JarFile moduleJarFile) {
+        super.prepareRegister(moduleJarFile);
+
         for (IMessageHandlerRegister handlerRegister : Registers.getHandlerRegisters()) {
             IClassScanner<Class<?>> scanner = handlerRegister.scanner();
             if (scanner != null) {
-                scanner.setJarFile(jarFile);
-                handlerRegister.action(getModuleClassLoader());
+                try {
+                    scanner.setJarFile(moduleJarFile);
+                    handlerClassesMap.put(handlerRegister, scanner.findClasses(getModuleClassLoader()));
+                } finally {
+                    scanner.setJarFile(null);
+                }
             }
+        }
+    }
+
+    @Override
+    protected void cancelPrepareRegister() {
+        super.cancelPrepareRegister();
+        handlerClassesMap.clear();
+    }
+
+    @Override
+    public void register(JarFile jarFile) {
+        if (!handlerClassesMap.isEmpty()) {
+            for (Map.Entry<IMessageHandlerRegister, List<Class<?>>> entry : handlerClassesMap.entrySet()) {
+                IMessageHandlerRegister handlerRegister = entry.getKey();
+                for (Class<?> handlerClass : entry.getValue()) {
+                    handlerRegister.registerHandlerClass(handlerClass);
+                }
+                entry.getValue().clear();
+            }
+            handlerClassesMap.clear();
         }
     }
 
@@ -37,8 +67,20 @@ class ModuleMessageHandlerRegistry extends AbstractModuleRegistry {
     }
 
     @Override
+    protected void cancelPrepareUnregister() {
+        MessageHandlerHolder.cancelPrepareUnregister();
+    }
+
+    @Override
     public void unregister0() {
         MessageHandlerHolder.unregisterHandlers(getModuleClassLoader());
     }
 
+    @Override
+    protected void cleanUp() {
+        super.cleanUp();
+
+        handlerClassesMap.clear();
+        handlerClassesMap = null;
+    }
 }

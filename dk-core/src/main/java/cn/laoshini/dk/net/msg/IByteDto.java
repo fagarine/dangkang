@@ -27,6 +27,10 @@ public interface IByteDto<BufferType> extends Serializable {
             .asList(boolean.class.getSimpleName(), byte.class.getSimpleName(), byte[].class.getSimpleName(),
                     short.class.getSimpleName(), int.class.getSimpleName(), long.class.getSimpleName(),
                     double.class.getSimpleName(), String.class.getSimpleName(), IByteDto.class.getSimpleName());
+    /**
+     * 单个参数的hashcode最大值
+     */
+    int MAX_HASH_CODE = Integer.MAX_VALUE >> 4;
 
     /**
      * 从缓冲中读取数据
@@ -340,11 +344,6 @@ public interface IByteDto<BufferType> extends Serializable {
     }
 
     /**
-     * 单个参数的hashcode最大值
-     */
-    int MAX_HASH_CODE = Integer.MAX_VALUE >> 4;
-
-    /**
      * 默认的hashcode计算方法
      *
      * @param object 待计算的对象
@@ -361,7 +360,7 @@ public interface IByteDto<BufferType> extends Serializable {
             code = ((Boolean) object) ? 1 : 0;
         } else if (Byte.class.equals(type) || byte.class.equals(type) || Short.class.equals(type) || short.class
                 .equals(type) || Integer.class.equals(type) || int.class.equals(type) || Double.class.equals(type)
-                || double.class.equals(type) || (Long.class.equals(type)) || long.class.equals(type)) {
+                   || double.class.equals(type) || (Long.class.equals(type)) || long.class.equals(type)) {
             code = (Integer) object;
         } else if (String.class.equals(type)) {
             byte[] bytes = ((String) object).getBytes(UTF_8);

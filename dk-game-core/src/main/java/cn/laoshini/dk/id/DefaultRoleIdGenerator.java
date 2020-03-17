@@ -6,6 +6,8 @@ import cn.laoshini.dk.annotation.FunctionVariousWays;
 import cn.laoshini.dk.condition.ConditionalOnPropertyValue;
 import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.exception.BusinessException;
+import cn.laoshini.dk.generator.id.IIdIncrementer;
+import cn.laoshini.dk.generator.id.IRoleIdGenerator;
 
 /**
  * 游戏角色id生成器的默认实现，该生成器生成的游戏角色id格式如下：

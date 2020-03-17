@@ -8,7 +8,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 
-import cn.laoshini.dk.net.msg.AbstractMessage;
+import cn.laoshini.dk.domain.msg.AbstractMessage;
 import cn.laoshini.dk.util.MessageUtil;
 
 import static java.nio.charset.StandardCharsets.UTF_8;

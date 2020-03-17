@@ -5,6 +5,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.management.ManagementFactory;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.net.URLDecoder;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -18,12 +21,11 @@ import com.sun.tools.attach.spi.AttachProvider;
  * @author fagarine
  */
 class RuntimeAgentLoader {
+    private static final String DK_AGENT_NAME = "dk-agent";
+    private static final String AGENT_LIB_DIR = "agentLib";
+
     private RuntimeAgentLoader() {
     }
-
-    private static final String DK_AGENT_NAME = "dk-agent";
-
-    private static final String AGENT_LIB_DIR = "agentLib";
 
     public static boolean loadAgent() {
         return loadAgent(getAgentJarPath());
@@ -35,6 +37,9 @@ class RuntimeAgentLoader {
         }
 
         VirtualMachine vm = getVirtualMachine();
+        if (vm == null) {
+            return true;
+        }
         try {
             vm.loadAgent(agentJarPath);
             return true;
@@ -83,7 +88,7 @@ class RuntimeAgentLoader {
             jarPath = jarPath.substring(0, exclamationIndex);
         }
 
-        try (JarFile jarFile = new JarFile(jarPath)){
+        try (JarFile jarFile = new JarFile(jarPath)) {
             // 检查manifest文件，如果包含Agent-Class项，直接返回启动包路径
             Attributes attributes = jarFile.getManifest().getMainAttributes();
             if (DangKangAgent.class.getName().equals(attributes.getValue("Agent-Class"))) {
@@ -113,6 +118,8 @@ class RuntimeAgentLoader {
     public static VirtualMachine getVirtualMachine() {
         String pid = getCurrentPid();
 
+        checkAndAddToolsJar();
+
         if (!VirtualMachine.list().isEmpty()) {
             try {
                 return VirtualMachine.attach(pid);
@@ -133,14 +140,45 @@ class RuntimeAgentLoader {
         }
     }
 
+    private static void checkAndAddToolsJar() {
+        ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+        String attachClassName = "com.sun.tools.attach.spi.AttachProvider";
+        try {
+            classLoader.loadClass(attachClassName);
+        } catch (ClassNotFoundException e) {
+            // 尝试动态加载tools.jar
+            String javaHome = System.getProperty("java.home");
+            File file = new File(javaHome);
+            if (file.getName().toLowerCase().contains("jre")) {
+                file = file.getParentFile();
+            }
+            file = new File(file.getPath() + File.separator + "lib/tools.jar");
+            if (!file.exists()) {
+                System.err.println("找不到tools.jar, java.home:" + javaHome);
+            } else {
+                System.out.println("动态加载tools.jar:" + file);
+                try {
+                    Method add = URLClassLoader.class.getDeclaredMethod("addURL", new Class[] { URL.class });
+                    boolean accessible = add.isAccessible();
+                    add.setAccessible(true);
+                    add.invoke(classLoader, file.toURI().toURL());
+                    add.setAccessible(accessible);
+                    classLoader.loadClass(attachClassName);
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
+            }
+        }
+    }
+
     /**
      * 获取当前虚拟机的pid
      *
      * @return 字符串格式的pid
      */
     public static String getCurrentPid() {
-        String nameOfRunningVM = ManagementFactory.getRuntimeMXBean().getName();
-        return nameOfRunningVM.substring(0, nameOfRunningVM.indexOf('@'));
+        String name = ManagementFactory.getRuntimeMXBean().getName();
+        return name.substring(0, name.indexOf('@'));
     }
 
     /**

@@ -2,12 +2,12 @@ package cn.laoshini.dk.net.handler;
 
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.executor.IOrderedExecutor;
 import cn.laoshini.dk.executor.OrderedQueuePoolExecutor;
 import cn.laoshini.dk.net.MessageHandlerHolder;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.server.worker.MessageReceiveWorker;
 import cn.laoshini.dk.util.LogUtil;
 
@@ -17,13 +17,13 @@ import cn.laoshini.dk.util.LogUtil;
  * @author fagarine
  */
 public class MessageReceiveDispatcher {
-    private MessageReceiveDispatcher() {
-    }
-
     private static IOrderedExecutor<Long> MESSAGE_EXECUTOR;
 
     static {
         MESSAGE_EXECUTOR = new OrderedQueuePoolExecutor("received-message", 3);
+    }
+
+    private MessageReceiveDispatcher() {
     }
 
     /**

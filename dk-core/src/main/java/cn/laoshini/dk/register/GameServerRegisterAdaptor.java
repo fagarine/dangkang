@@ -3,11 +3,13 @@ package cn.laoshini.dk.register;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import com.google.protobuf.ExtensionRegistry;
 import com.google.protobuf.MessageLite;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
+import cn.laoshini.dk.constant.ServerType;
 import cn.laoshini.dk.domain.GameServerConfig;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.net.codec.INettyMessageDecoder;
@@ -21,7 +23,7 @@ import cn.laoshini.dk.net.server.AbstractInnerGameServer;
 import cn.laoshini.dk.net.server.InnerGameServerFactory;
 import cn.laoshini.dk.net.session.IMessageSender;
 import cn.laoshini.dk.net.session.ISessionCreator;
-import cn.laoshini.dk.server.AbstractGameServer;
+import cn.laoshini.dk.support.ParamSupplier;
 import cn.laoshini.dk.util.LogUtil;
 import cn.laoshini.dk.util.NetUtil;
 import cn.laoshini.dk.util.StringUtil;
@@ -31,50 +33,47 @@ import cn.laoshini.dk.util.StringUtil;
  */
 public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M> {
 
+    private static final AtomicInteger GAME_ID = new AtomicInteger(1);
+
     private static final AtomicInteger SERVER_ID = new AtomicInteger(1);
-
-    private int serverId;
-
-    private String gameName;
-
-    private int port;
-
+    protected AbstractInnerGameServer<S, M> gameServer;
+    protected boolean sharingPortWithGm;
+    private ParamSupplier<Integer> gameIdSupplier = ParamSupplier
+            .ofDefaultSupplier("游戏ID", Integer.class, GAME_ID::getAndIncrement);
+    private ParamSupplier<String> gameNameSupplier = ParamSupplier
+            .ofDefaultSupplier("游戏名称", String.class, () -> "game-" + gameId());
+    private ParamSupplier<Integer> portSupplier = ParamSupplier.of("游戏端口", Integer.class);
+    private ParamSupplier<Integer> serverIdSupplier = ParamSupplier
+            .ofDefaultSupplier("游戏服务器ID", Integer.class, SERVER_ID::getAndIncrement);
+    private ParamSupplier<String> serverNameSupplier = ParamSupplier
+            .ofDefaultSupplier("游戏服务器名称", String.class, () -> gameName() + "-server-" + serverId());
     private GameServerProtocolEnum protocol = GameServerProtocolEnum.TCP;
-
-    private int idleTime = 300;
-
+    private int idleTime;
     private boolean tcpNoDelay;
-
+    private ServerType serverType = ServerType.GAME;
     private List<IGameDataLoader> dataLoaders = new ArrayList<>();
-
     private ISessionCreator<S> sessionCreator;
-
     private INettyMessageDecoder<M> decoder;
-
     private INettyMessageEncoder<M> encoder;
-
     private IConnectOpenedHandler<S> connectOpened;
-
     private IConnectClosedHandler<S> connectClosed;
-
     private IConnectExceptionHandler<S> connectException;
-
     private List<IMessageInterceptor<S, M>> messageInterceptors = new ArrayList<>();
-
     private IMessageDispatcher<S, M> messageDispatcher;
-
     private IMessageSender<S, M> sender;
-
-    private AbstractInnerGameServer<S, M> gameServer;
+    private IGameServerStartedHandler serverStartedHandler;
+    private IGmServerRegister gmRegister;
 
     @Override
-    public AbstractGameServer startServer() {
+    public GameServerRegisterAdaptor<S, M> startServer() {
+        String gameName = gameName();
         if (StringUtil.isEmptyString(gameName)) {
-            throw new IllegalArgumentException("无效的游戏名称:" + gameName);
+            throw new IllegalArgumentException("请提供有效的游戏名称:" + gameName);
         }
 
+        int port = portSupplier.get();
         if (port < 0 || port > 65535) {
-            throw new IllegalArgumentException("无效端口号:" + port);
+            throw new IllegalArgumentException("请提供有效的游戏端口号:" + port);
         }
 
         if (!NetUtil.localPortAble(port)) {
@@ -82,7 +81,7 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
         }
 
         // 加载数据
-        if (!dataLoaders.isEmpty()) {
+        if (!dataLoaders.isEmpty() && gameServer == null) {
             for (IGameDataLoader loader : dataLoaders) {
                 try {
                     LogUtil.debug("开始执行数据加载：" + loader.name());
@@ -95,19 +94,86 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
         }
 
         // 启动服务器线程
-        gameServer = InnerGameServerFactory.newGameServer(this);
+        if (gameServer == null) {
+            gameServer = InnerGameServerFactory.newGameServer(this);
+        }
         gameServer.start();
-        return gameServer;
+
+        return self();
+    }
+
+    /**
+     * 服务器是否已启动并处于运行中
+     *
+     * @return 返回判断结果
+     */
+    public boolean isStarted() {
+        return gameServer != null && !gameServer.isShutdown();
+    }
+
+    /**
+     * 设置游戏id
+     *
+     * @param gameId 游戏id
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGameId(int gameId) {
+        gameIdSupplier.setValue(gameId);
+        return self();
+    }
+
+    /**
+     * 通过传入配置项key，获取配置并设置为游戏id（容器启动后才能正确获取到参数）
+     *
+     * @param propertyKey 配置游戏id的配置项key
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGameIdByProperty(String propertyKey) {
+        gameIdSupplier.setPropertyKey(propertyKey);
+        return self();
+    }
+
+    /**
+     * 通过传入Lambda，获取并设置游戏id（延迟获取，或需要等待容器启动后才能获取到参数的，可以使用这种方式）
+     *
+     * @param supplier 获取游戏id的Lambda
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGameIdByLambda(Supplier<Integer> supplier) {
+        gameIdSupplier.setSupplier(supplier);
+        return self();
     }
 
     /**
      * 设置游戏名称
      *
-     * @param name 游戏名
+     * @param gameName 游戏名
      * @return 返回当前对象
      */
-    public GameServerRegisterAdaptor<S, M> setGameName(String name) {
-        this.gameName = name;
+    public GameServerRegisterAdaptor<S, M> setGameName(String gameName) {
+        gameNameSupplier.setValue(gameName);
+        return self();
+    }
+
+    /**
+     * 通过传入配置项key，获取配置并设置为游戏名称（容器启动后才能正确获取到参数）
+     *
+     * @param propertyKey 配置游戏名称的配置项key
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGameNameByProperty(String propertyKey) {
+        gameNameSupplier.setPropertyKey(propertyKey);
+        return self();
+    }
+
+    /**
+     * 通过传入Lambda，获取并设置游戏名称（延迟获取，或需要等待容器启动后才能获取到参数的，可以使用这种方式）
+     *
+     * @param supplier 获取游戏名称的Lambda
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGameNameByLambda(Supplier<String> supplier) {
+        gameNameSupplier.setSupplier(supplier);
         return self();
     }
 
@@ -118,7 +184,95 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
      * @return 返回当前对象
      */
     public GameServerRegisterAdaptor<S, M> setPort(int bindPort) {
-        this.port = bindPort;
+        portSupplier.setValue(bindPort);
+        return self();
+    }
+
+    /**
+     * 通过传入配置项key，获取端口号配置并设置为游戏服务器绑定端口（容器启动后才能正确获取到参数）
+     *
+     * @param propertyKey 配置端口号的配置项key
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setPortByProperty(String propertyKey) {
+        portSupplier.setPropertyKey(propertyKey);
+        return self();
+    }
+
+    /**
+     * 通过传入Lambda，获取并设置游戏服务器绑定端口（延迟获取，或需要等待容器启动后才能获取到参数的，可以使用这种方式）
+     *
+     * @param supplier 获取端口号的Lambda
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setPortByLambda(Supplier<Integer> supplier) {
+        portSupplier.setSupplier(supplier);
+        return self();
+    }
+
+    /**
+     * 设置游戏服务器id
+     *
+     * @param serverId 服务器id
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerId(int serverId) {
+        serverIdSupplier.setValue(serverId);
+        return self();
+    }
+
+    /**
+     * 通过传入配置项key，获取配置并设置为游戏服务器id（容器启动后才能正确获取到参数）
+     *
+     * @param propertyKey 配置游戏服务器id的配置项key
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerIdByProperty(String propertyKey) {
+        serverIdSupplier.setPropertyKey(propertyKey);
+        return self();
+    }
+
+    /**
+     * 通过传入Lambda，获取并设置游戏服务器id（延迟获取，或需要等待容器启动后才能获取到参数的，可以使用这种方式）
+     *
+     * @param supplier 获取游戏服务器id的Lambda
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerIdByLambda(Supplier<Integer> supplier) {
+        serverIdSupplier.setSupplier(supplier);
+        return self();
+    }
+
+    /**
+     * 设置游戏服务器名称
+     *
+     * @param serverName 服务器名称
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerName(String serverName) {
+        serverNameSupplier.setValue(serverName);
+        return self();
+    }
+
+    /**
+     * 通过传入配置项key，获取配置并设置为游戏服务器名称（容器启动后才能正确获取到参数）
+     *
+     * @param propertyKey 配置游戏服务器名称的配置项key
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerNameByProperty(String propertyKey) {
+        serverNameSupplier.setPropertyKey(propertyKey);
+        return self();
+    }
+
+    /**
+     * 通过传入Lambda，获取并设置游戏服务器名称（延迟获取，或需要等待容器启动后才能获取到参数的，可以使用这种方式）
+     *
+     * @param supplier 获取游戏服务器名称的Lambda
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setServerNameByLambda(Supplier<String> supplier) {
+        serverNameSupplier.setSupplier(supplier);
         return self();
     }
 
@@ -136,26 +290,6 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     /**
-     * 设置游戏服使用TCP协议通信
-     *
-     * @return 返回当前对象
-     */
-    public GameServerRegisterAdaptor<S, M> tcp() {
-        this.protocol = GameServerProtocolEnum.TCP;
-        return self();
-    }
-
-    /**
-     * 设置游戏服使用UDP协议通信
-     *
-     * @return 返回当前对象
-     */
-    public GameServerRegisterAdaptor<S, M> udp() {
-        this.protocol = GameServerProtocolEnum.UDP;
-        return self();
-    }
-
-    /**
      * 设置游戏服使用HTTP协议通信
      *
      * @return 返回当前对象
@@ -166,25 +300,13 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     /**
-     * 设置游戏服使用Websocket协议通信
-     *
-     * @return 返回当前对象
-     */
-    public GameServerRegisterAdaptor<S, M> websocket() {
-        this.protocol = GameServerProtocolEnum.WEBSOCKET;
-        return self();
-    }
-
-    /**
-     * 设置判定连接为空闲的时间（超过该时间没有响应，将断开连接），仅对TCP、UDP协议有效
+     * 设置判定连接为空闲的时间（超过该时间没有响应，将断开连接），仅对TCP、Websocket协议有效
      *
      * @param idleSeconds 秒
      * @return 返回当前对象
      */
     public GameServerRegisterAdaptor<S, M> setIdleTime(int idleSeconds) {
-        if (idleSeconds > 0) {
-            this.idleTime = idleSeconds;
-        }
+        this.idleTime = idleSeconds;
         return self();
     }
 
@@ -195,6 +317,28 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
      */
     public GameServerRegisterAdaptor<S, M> setTcpNoDelay() {
         this.tcpNoDelay = true;
+        return self();
+    }
+
+    /**
+     * 设置服务器类型
+     *
+     * @param serverType 服务器类型枚举
+     * @return 返回当前对象
+     */
+    protected GameServerRegisterAdaptor<S, M> setServerType(ServerType serverType) {
+        this.serverType = serverType;
+        return self();
+    }
+
+    /**
+     * 设置GM服务器注册对象
+     *
+     * @param gmRegister GM服务器注册对象
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> setGmServerRegister(IGmServerRegister gmRegister) {
+        this.gmRegister = gmRegister;
         return self();
     }
 
@@ -327,16 +471,24 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     /**
-     * 将配置信息转为{@link GameServerConfig}对象发回
+     * 设置游戏服务器线程启动成功后的逻辑，该逻辑由游戏服线程执行
+     *
+     * @param serverStartedHandler 游戏启动后逻辑
+     * @return 返回当前对象
+     */
+    public GameServerRegisterAdaptor<S, M> onServerStarted(IGameServerStartedHandler serverStartedHandler) {
+        this.serverStartedHandler = serverStartedHandler;
+        return self();
+    }
+
+    /**
+     * 将配置信息转换为{@link GameServerConfig}对象返回
      *
      * @return 该方法不会返回null
      */
     public GameServerConfig toGameServerConfig() {
-        if (serverId == 0) {
-            serverId = SERVER_ID.getAndIncrement();
-        }
-
-        return GameServerConfig.builder().id(serverId).name(gameName).port(port).protocol(protocol).idleTime(idleTime)
+        return GameServerConfig.builder().gameId(gameId()).gameName(gameName()).serverId(serverId())
+                .serverName(serverName()).port(port()).serverType(serverType).protocol(protocol).idleTime(idleTime)
                 .tcpNoDelay(tcpNoDelay).build();
     }
 
@@ -345,13 +497,28 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     }
 
     @Override
+    public int gameId() {
+        return gameIdSupplier.get();
+    }
+
+    @Override
     public String gameName() {
-        return gameName;
+        return gameNameSupplier.get();
+    }
+
+    @Override
+    public int serverId() {
+        return serverIdSupplier.get();
+    }
+
+    @Override
+    public String serverName() {
+        return serverNameSupplier.get();
     }
 
     @Override
     public int port() {
-        return port;
+        return portSupplier.get();
     }
 
     @Override
@@ -367,6 +534,11 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     @Override
     public boolean isTcpNoDelay() {
         return tcpNoDelay;
+    }
+
+    @Override
+    public ServerType serverType() {
+        return serverType;
     }
 
     @Override
@@ -417,5 +589,27 @@ public class GameServerRegisterAdaptor<S, M> implements IGameServerRegister<S, M
     @Override
     public IMessageSender<S, M> messageSender() {
         return sender;
+    }
+
+    @Override
+    public IGameServerStartedHandler serverStartedHandler() {
+        return serverStartedHandler;
+    }
+
+    /**
+     * 判断服务器是否GM服务器
+     *
+     * @return 返回判断结果
+     */
+    public boolean isGmServer() {
+        return ServerType.GM.equals(serverType());
+    }
+
+    public IGmServerRegister gmRegister() {
+        return gmRegister;
+    }
+
+    public boolean isSharingPortWithGm() {
+        return sharingPortWithGm;
     }
 }

@@ -2,6 +2,7 @@ package cn.laoshini.dk.dao;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,16 +23,18 @@ import org.springframework.transaction.annotation.Transactional;
 
 import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.annotation.FunctionVariousWays;
-import cn.laoshini.dk.dao.query.AbstractQueryCondition;
-import cn.laoshini.dk.dao.query.BeanQueryCondition;
-import cn.laoshini.dk.dao.query.ListQueryCondition;
-import cn.laoshini.dk.dao.query.Page;
-import cn.laoshini.dk.dao.query.PageQueryCondition;
 import cn.laoshini.dk.dao.query.QueryUtil;
 import cn.laoshini.dk.domain.common.Tuple;
+import cn.laoshini.dk.domain.query.AbstractQueryCondition;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
+import cn.laoshini.dk.domain.query.ListQueryCondition;
+import cn.laoshini.dk.domain.query.Page;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 import cn.laoshini.dk.exception.DaoException;
 import cn.laoshini.dk.util.CollectionUtil;
 import cn.laoshini.dk.util.LogUtil;
+import cn.laoshini.dk.util.ReflectUtil;
+import cn.laoshini.dk.util.TypeUtil;
 
 /**
  * 关系数据库数据库访问对象，默认实现类，针对单表
@@ -50,22 +53,23 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
      * 单次查询最大行数
      */
     private static final int SELECT_MAX_COUNT = 10000;
-
+    private static final String LAST_INSERT_ID_FORMAT = "SELECT MAX(%s) FROM %s";
     @FunctionDependent
     private IEntityClassManager entityClassManager;
-
     /**
      * 表对应的实体类
      */
     private Class<EntityType> type;
-
+    /**
+     * 表中自增字段对应的变量
+     */
+    private Field autoIncrementField;
+    private String autoIncrementColumn;
     /**
      * 表名
      */
     private String tableName;
-
     private JdbcTemplate jdbcTemplate;
-
     /**
      * 行数据转换为实体对象
      */
@@ -110,10 +114,34 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         }
         return entity;
     };
+    private ResultSetExtractor<Long> countReader = rs -> {
+        if (rs.next()) {
+            return rs.getLong(1);
+        }
+        return 0L;
+    };
+    private ResultSetExtractor<Number> autoIncrementIdReader = rs -> {
+        if (rs.next()) {
+            return rs.getObject(1, (Class<Number>) autoIncrementField.getType());
+        }
+        return null;
+    };
 
     public DefaultRelationalDbDao(Class<EntityType> clazz, JdbcTemplate jdbcTemplate) {
         this.type = clazz;
         this.jdbcTemplate = jdbcTemplate;
+        for (Field field : type.getDeclaredFields()) {
+            if (field.isAnnotationPresent(TableKey.class) && field.getAnnotation(TableKey.class).autoIncrement()) {
+                if (!Number.class.isAssignableFrom(field.getType()) && !TypeUtil.isUnpackNumberType(field.getType())) {
+                    throw new DaoException("field.type.error",
+                            "自增字段的类型必须为数值类型，请检查, class:" + clazz.getName() + ", field:" + field.getName() + ", type:"
+                            + field.getType());
+                }
+                autoIncrementField = field;
+                autoIncrementColumn = SqlBuilder.toColumnName(clazz, field.getName());
+                break;
+            }
+        }
     }
 
     private int executeDDL(PreparedStatementCreator psc) {
@@ -132,8 +160,13 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
             Tuple<String, Tuple<int[], List<Object>>> psTuple = PreparedStatementSqlBuilder.newInsertSql(data);
             PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
             if (psc != null) {
-                LogUtil.debug("prepare execute insert sql: {}", psTuple.getV1());
-                return executeDDL(psc);
+                LogUtil.debug("prepare execute insert sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
+                if (autoIncrementField != null) {
+                    // 表中id使用自增字段的，插入完成后注入id的值
+                    return transactionInsert(psc, data);
+                } else {
+                    return executeDDL(psc);
+                }
             } else {
                 throw new DaoException("build.sql.fail", "创建插入SQL失败");
             }
@@ -141,11 +174,34 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         throw new DaoException("not.table.entity", "实体类没有关联表，请检查配置:" + type.getName());
     }
 
+    private int transactionInsert(PreparedStatementCreator psc, EntityType data) {
+        try (Connection connection = jdbcTemplate.getDataSource().getConnection()) {
+            connection.setAutoCommit(false);
+
+            int row = executeDDL(psc);
+            // 将新插入的自增id填入对象中
+            Number autoIncrementId = null;
+            if (row == 1) {
+                String sql = String.format(LAST_INSERT_ID_FORMAT, autoIncrementColumn, getTableName());
+                autoIncrementId = jdbcTemplate.query(sql, autoIncrementIdReader);
+            }
+            connection.commit();
+            connection.setAutoCommit(true);
+
+            if (autoIncrementId != null && autoIncrementId.longValue() > 0) {
+                ReflectUtil.setFieldValue(data, autoIncrementField, autoIncrementId);
+            }
+            return row;
+        } catch (SQLException e) {
+            throw new DaoException("execute.insert.error", "执行插入SQL出错", e);
+        }
+    }
+
     private int doBatchInsert(List<EntityType> list) {
         Tuple<String, Tuple<int[], List<Object>>> psTuple = PreparedStatementSqlBuilder.newBatchInsertSql(list);
         PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
         if (psc != null) {
-            LogUtil.debug("prepare execute batch insert sql: {}", psTuple.getV1());
+            LogUtil.debug("prepare execute batch insert sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
             return executeDDL(psc);
         } else {
             throw new DaoException("build.sql.fail", "创建批量插入SQL失败");
@@ -194,7 +250,7 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         Tuple<String, Tuple<int[], List<Object>>> psTuple = PreparedStatementSqlBuilder.newUpdateSql(entity);
         PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
         if (psc != null) {
-            LogUtil.debug("prepare execute update sql: {}", psTuple.getV1());
+            LogUtil.debug("prepare execute update sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
             return executeDDL(psc);
         } else {
             throw new DaoException("build.sql.fail", "创建更新SQL失败");
@@ -257,7 +313,8 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
                     .newBatchUpdateSql(getTableName(), type, null, updatedColumns);
             PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
             if (psc != null) {
-                LogUtil.debug("prepare execute full update sql: {}", psTuple.getV1());
+                LogUtil.debug("prepare execute full update sql: {}, params: {}", psTuple.getV1(),
+                        psTuple.getV2().getV2());
                 return executeDDL(psc);
             } else {
                 throw new DaoException("build.sql.fail", "创建全量更新SQL失败");
@@ -275,7 +332,7 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         Tuple<String, Tuple<int[], List<Object>>> psTuple = PreparedStatementSqlBuilder.newDeleteSql(entity);
         PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
         if (psc != null) {
-            LogUtil.debug("prepare execute delete sql: {}", psTuple.getV1());
+            LogUtil.debug("prepare execute delete sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
             return executeDDL(psc);
         } else {
             throw new DaoException("build.sql.fail", "创建删除SQL失败");
@@ -316,7 +373,7 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
         Tuple<String, Tuple<int[], List<Object>>> psTuple = PreparedStatementSqlBuilder.newSelectSql(type, condition);
         PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
         if (psc != null) {
-            LogUtil.debug("prepare execute query sql: {}", psTuple.getV1());
+            LogUtil.debug("prepare execute query sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
             return jdbcTemplate.query(psc, rowMapper);
         } else {
             throw new DaoException("build.sql.fail", "创建批量查询SQL失败");
@@ -373,7 +430,7 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
                 .newPageQuerySql(type, condition);
         PreparedStatementCreator psc = PreparedStatementBuilder.buildPsc(psTuple);
         if (psc != null) {
-            LogUtil.debug("prepare execute page query sql: {}", psTuple.getV1());
+            LogUtil.debug("prepare execute page query sql: {}, params: {}", psTuple.getV1(), psTuple.getV2().getV2());
             return jdbcTemplate.query(psc, rowMapper);
         } else {
             throw new DaoException("build.sql.fail", "创建分页查询SQL失败");
@@ -388,15 +445,7 @@ public class DefaultRelationalDbDao<EntityType> implements IRelationalDbDao<Enti
     private long getCount() {
         String countSql = SqlBuilder.buildCountSql(getTableName());
         LogUtil.debug("执行统计SQL: {}", countSql);
-        Long totalCount = jdbcTemplate.query(countSql, new ResultSetExtractor<Long>() {
-            @Override
-            public Long extractData(ResultSet rs) throws SQLException, DataAccessException {
-                if (rs.next()) {
-                    return rs.getLong(1);
-                }
-                return 0L;
-            }
-        });
+        Long totalCount = jdbcTemplate.query(countSql, countReader);
 
         return totalCount == null ? 0 : totalCount;
     }

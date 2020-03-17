@@ -11,23 +11,22 @@ import com.google.protobuf.Message;
 import org.springframework.util.StringUtils;
 
 import cn.laoshini.dk.annotation.ResourceHolder;
-import cn.laoshini.dk.autoconfigure.DangKangBasicProperties;
 import cn.laoshini.dk.common.SpringContextHolder;
+import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.LogLabel;
 import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.domain.HandlerDesc;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.net.handler.ExpressionMessageHandler;
 import cn.laoshini.dk.net.handler.IHttpMessageHandler;
 import cn.laoshini.dk.net.handler.IMessageHandler;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.CollectionUtil;
 import cn.laoshini.dk.util.LogUtil;
 import cn.laoshini.dk.util.ReflectHelper;
-import cn.laoshini.dk.util.StringUtil;
 
 /**
  * @author fagarine
@@ -39,39 +38,32 @@ public enum MessageHandlerHolder {
      */
     INSTANCE;
 
-    private static int maxResponseTime;
-
     /**
      * 记录handler类的类型
      */
     private static final Map<Integer, Class<?>> HANDLER_TYPE_MAP = new ConcurrentHashMap<>();
-
     /**
      * 缓存handler类的类型
      */
     private static final Map<Integer, Class<?>> HANDLER_TYPE_CACHE = new ConcurrentHashMap<>();
-
     /**
      * 记录handler类的单例对象
      */
     private static final Map<Integer, Object> HANDLER_INSTANCE_MAP = new ConcurrentHashMap<>();
-
     /**
      * 缓存handler类的单例对象
      */
     private static final Map<Integer, Object> HANDLER_INSTANCE_CACHE = new ConcurrentHashMap<>();
-
     /**
      * 记录类加载器已加载的消息id
      */
     private static final Map<ClassLoader, Set<Integer>> MESSAGE_ID_MAP = new HashMap<>();
-
     /**
      * 记录类加载器已加载的消息Handler，已注册到Spring容器的对象名称
      */
     private static final Map<ClassLoader, Set<String>> SPRING_BEAN_NAMES = new HashMap<>();
-
     private static final Map<Integer, HandlerDesc> DESCRIPTORS = new ConcurrentHashMap<>();
+    private static int maxResponseTime;
 
     private static void checkDuplicate(int messageId, Class<?> clazz) {
         Class<?> origin = HANDLER_TYPE_MAP.get(messageId);
@@ -94,7 +86,11 @@ public enum MessageHandlerHolder {
         desc.setAllowGuestRequest(allowGuestRequest);
         if (IMessageHandler.class.isAssignableFrom(clazz)) {
             desc.setInternal(true);
-            desc.setGenericType(MessageDtoClassHolder.getDtoClass(messageId));
+            Class<?> genericType = MessageDtoClassHolder.getDtoClass(messageId);
+            if (genericType == null) {
+                genericType = ReflectHelper.getMessageHandlerGenericType((Class<? extends IMessageHandler>) clazz);
+            }
+            desc.setGenericType(genericType);
         }
         DESCRIPTORS.put(messageId, desc);
     }
@@ -184,6 +180,7 @@ public enum MessageHandlerHolder {
      * @param classLoader 类加载器
      */
     public static void prepareUnregisterHandlers(ClassLoader classLoader) {
+        HANDLER_INSTANCE_CACHE.clear();
         Collection<Integer> messageIds = MESSAGE_ID_MAP.get(classLoader);
         if (CollectionUtil.isNotEmpty(messageIds)) {
             for (Integer messageId : messageIds) {
@@ -198,6 +195,12 @@ public enum MessageHandlerHolder {
                 }
             }
         }
+    }
+
+    public static void cancelPrepareUnregister() {
+        HANDLER_INSTANCE_MAP.putAll(HANDLER_INSTANCE_CACHE);
+        HANDLER_INSTANCE_CACHE.clear();
+        HANDLER_TYPE_CACHE.clear();
     }
 
     /**
@@ -444,14 +447,10 @@ public enum MessageHandlerHolder {
     private static int getMaxResponseTime() {
         if (maxResponseTime == 0) {
             if (SpringContextHolder.isInitialized()) {
-                String value = SpringContextHolder.getProperty("dk.max-response");
-                if (StringUtil.isNotEmptyString(value)) {
-                    maxResponseTime = Integer.parseInt(value);
-                } else {
-                    maxResponseTime = SpringContextHolder.getBean(DangKangBasicProperties.class).getMaxResponse();
-                }
+                maxResponseTime = SpringContextHolder
+                        .getIntProperty("dk.max-response", Constants.HANDLER_RESPONSE_LIMIT);
             } else {
-                maxResponseTime = 20;
+                return Constants.HANDLER_RESPONSE_LIMIT;
             }
         }
         return maxResponseTime;

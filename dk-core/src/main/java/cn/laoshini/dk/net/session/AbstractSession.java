@@ -5,7 +5,7 @@ import java.util.Map;
 
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.domain.GameSubject;
-import cn.laoshini.dk.net.msg.RespMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.util.CollectionUtil;
 
 /**
@@ -23,10 +23,8 @@ public abstract class AbstractSession<T> {
     private static final String HTTP_CONNECT_KEY = "HTTP CONNECT";
 
     private static final String HTTP_KEEP_ALIVE_KEY = "HTTP KEEP ALIVE";
-
-    private Map<String, Object> keyToAttrs = new HashMap<>();
-
     protected T channel;
+    private Map<String, Object> keyToAttrs = new HashMap<>();
 
     public AbstractSession(T channel) {
         this.channel = channel;
@@ -130,20 +128,24 @@ public abstract class AbstractSession<T> {
         keyToAttrs.clear();
     }
 
+    public Long getId() {
+        return containsAttr(SESSION_ID_KEY) ? (Long) keyToAttrs.get(SESSION_ID_KEY) : 0L;
+    }
+
     public void setId(long id) {
         keyToAttrs.put(SESSION_ID_KEY, id);
     }
 
-    public Long getId() {
-        return containsAttr(SESSION_ID_KEY) ? (Long) keyToAttrs.get(SESSION_ID_KEY) : 0L;
+    public GameSubject getSubject() {
+        return (GameSubject) keyToAttrs.get(GAME_SUBJECT_KEY);
     }
 
     public void setSubject(GameSubject subject) {
         keyToAttrs.put(GAME_SUBJECT_KEY, subject);
     }
 
-    public GameSubject getSubject() {
-        return (GameSubject) keyToAttrs.get(GAME_SUBJECT_KEY);
+    public boolean isHttpConnect() {
+        return containsAttr(HTTP_CONNECT_KEY);
     }
 
     public void setHttpConnect(boolean isKeepAlive) {
@@ -151,10 +153,6 @@ public abstract class AbstractSession<T> {
         if (isKeepAlive) {
             addFlag(HTTP_KEEP_ALIVE_KEY);
         }
-    }
-
-    public boolean isHttpConnect() {
-        return containsAttr(HTTP_CONNECT_KEY);
     }
 
     public boolean isHttpKeepAlive() {

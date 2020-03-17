@@ -15,19 +15,19 @@ import cn.laoshini.dk.exception.BusinessException;
  * @author fagarine
  */
 public class TypeUtil {
-    private TypeUtil() {
-    }
-
+    public static final List<Class<?>> PRIMITIVE_NUMBER_TYPES = Arrays
+            .asList(byte.class, short.class, int.class, long.class, float.class, double.class);
     public static final List<Class<?>> PRIMITIVE_TYPES = Arrays
             .asList(boolean.class, byte.class, char.class, short.class, int.class, long.class, float.class,
                     double.class);
-
     public static final List<Class<?>> PRIMITIVE_BOX_TYPES = Arrays
             .asList(Boolean.class, Byte.class, Character.class, Short.class, Integer.class, Long.class, Float.class,
                     Double.class);
-
     public static final List<Class<?>> NORMAL_TYPES = Arrays
             .asList(Class.class, BigDecimal.class, BigInteger.class, Date.class, java.sql.Date.class, Timestamp.class);
+
+    private TypeUtil() {
+    }
 
     /**
      * 是否是基本类型或基本类型的封装类型
@@ -231,5 +231,30 @@ public class TypeUtil {
             return 0D;
         }
         throw new IllegalArgumentException("传入类型不是基本数据类型:" + toType);
+    }
+
+    public static boolean isUnpackNumberType(Class<?> clazz) {
+        return PRIMITIVE_NUMBER_TYPES.contains(clazz);
+    }
+
+    public static Number castLongToNumber(Long value, Class<? extends Number> toType) {
+        if (value == null) {
+            return null;
+        } else if (value == 0) {
+            return 0;
+        } else if (byte.class.equals(toType) || Byte.class.equals(toType)) {
+            return value.byteValue();
+        } else if (short.class.equals(toType) || Short.class.equals(toType)) {
+            return value.shortValue();
+        } else if (int.class.equals(toType) || Integer.class.equals(toType)) {
+            return value.intValue();
+        } else if (long.class.equals(toType) || Long.class.equals(toType)) {
+            return value;
+        } else if (float.class.equals(toType) || Float.class.equals(toType)) {
+            return value.floatValue();
+        } else if (double.class.equals(toType) || Double.class.equals(toType)) {
+            return value.doubleValue();
+        }
+        return null;
     }
 }

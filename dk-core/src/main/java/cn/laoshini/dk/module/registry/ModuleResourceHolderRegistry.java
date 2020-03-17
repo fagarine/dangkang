@@ -1,14 +1,11 @@
 package cn.laoshini.dk.module.registry;
 
-import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import java.util.jar.JarFile;
 
 import cn.laoshini.dk.annotation.ResourceHolder;
-import cn.laoshini.dk.function.ConfigurableFunctionInjector;
 import cn.laoshini.dk.manager.ResourceHolderManager;
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 import cn.laoshini.dk.util.ClassUtil;
 
@@ -17,26 +14,45 @@ import cn.laoshini.dk.util.ClassUtil;
  *
  * @author fagarine
  */
-public class ModuleResourceHolderRegistry extends AbstractModuleRegistry {
+class ModuleResourceHolderRegistry extends AbstractRecoverableModuleRegistry {
 
-    public ModuleResourceHolderRegistry(ModuleLoaderContext context) {
+    private List<Class<?>> holderClasses = new LinkedList<>();
+
+    ModuleResourceHolderRegistry(ModuleLoaderContext context) {
         super(context);
     }
 
-    private Set<String> holderKeys = new HashSet<>();
+    @Override
+    public void prepareRegister(JarFile moduleJarFile) {
+        super.prepareRegister(moduleJarFile);
+
+        List<Class<?>> classes = ClassUtil
+                .getAllClassByAnnotationInJarFile(moduleJarFile, getModuleClassLoader(), null, ResourceHolder.class);
+        holderClasses.addAll(classes);
+    }
+
+    @Override
+    protected void cancelPrepareRegister() {
+        super.cancelPrepareRegister();
+        holderClasses.clear();
+    }
 
     @Override
     public void register(JarFile jarFile) {
-        List<Class<?>> classes = ClassUtil
-                .getAllClassByAnnotationInJarFile(jarFile, getModuleClassLoader(), null, ResourceHolder.class);
-        ResourceHolderManager.batchRegister(classes);
-
-        ConfigurableFunctionInjector.findAndRejectFunctionByModule(getModuleClassLoader());
+        if (!holderClasses.isEmpty()) {
+            ResourceHolderManager.batchRegister(holderClasses);
+            holderClasses.clear();
+        }
     }
 
     @Override
     public void prepareUnregister() {
-        ResourceHolderManager.prepareUnregister(holderKeys);
+        ResourceHolderManager.prepareUnregister(getModuleClassLoader());
+    }
+
+    @Override
+    protected void cancelPrepareUnregister() {
+        ResourceHolderManager.cancelPrepareUnregister();
     }
 
     @Override
@@ -48,7 +64,7 @@ public class ModuleResourceHolderRegistry extends AbstractModuleRegistry {
     protected void cleanUp() {
         super.cleanUp();
 
-        holderKeys.clear();
-        holderKeys = null;
+        holderClasses.clear();
+        holderClasses = null;
     }
 }

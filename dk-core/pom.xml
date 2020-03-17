@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>dangkang</artifactId>
@@ -20,6 +20,12 @@
 
         <dependency>
             <groupId>cn.laoshini.dk</groupId>
+            <artifactId>dk-domain</artifactId>
+            <version>${dangkang.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.laoshini.dk</groupId>
             <artifactId>dk-agent</artifactId>
             <version>${dangkang.version}</version>
         </dependency>
@@ -28,6 +34,7 @@
             <groupId>cn.laoshini.dk</groupId>
             <artifactId>dk-autoconfigure</artifactId>
             <version>${dangkang.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -51,7 +58,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.6.1</version>
+            <version>3.11.1</version>
             <scope>provided</scope>
         </dependency>
 
@@ -59,13 +66,6 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>27.0.1-jre</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.protobuf</groupId>
-            <artifactId>protobuf-java</artifactId>
-            <version>3.6.1</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

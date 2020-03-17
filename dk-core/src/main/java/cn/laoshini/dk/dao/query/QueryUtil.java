@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import cn.laoshini.dk.constant.QueryConditionKeyEnum;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
+import cn.laoshini.dk.domain.query.ListQueryCondition;
 
 /**
  * @author fagarine

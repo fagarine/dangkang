@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.jar.JarFile;
 
 import cn.laoshini.dk.function.VariousWaysManager;
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 
 /**
@@ -12,16 +11,16 @@ import cn.laoshini.dk.module.loader.ModuleLoaderContext;
  *
  * @author fagarine
  */
-class ModuleConfigurableFunctionRegistry extends AbstractModuleRegistry {
-
-    ModuleConfigurableFunctionRegistry(ModuleLoaderContext context) {
-        super(context);
-    }
+class ModuleConfigurableFunctionRegistry extends AbstractRecoverableModuleRegistry {
 
     /**
      * 记录模块中已注册的可配置功能实现类，key: 功能定义类, value: 实现类的key
      */
     private Map<Class<?>, String> configurableFunctionMap;
+
+    ModuleConfigurableFunctionRegistry(ModuleLoaderContext context) {
+        super(context);
+    }
 
     @Override
     public void register(JarFile jarFile) {
@@ -31,6 +30,11 @@ class ModuleConfigurableFunctionRegistry extends AbstractModuleRegistry {
 
     @Override
     public void prepareUnregister() {
+        // do nothing
+    }
+
+    @Override
+    protected void cancelPrepareUnregister() {
         // do nothing
     }
 

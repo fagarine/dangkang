@@ -49,11 +49,9 @@ public abstract class AbstractNettyTcpClient<S, M> implements Runnable {
      * 最大重连次数
      */
     public static final int RECONNECT_COUNT = 5;
-
+    protected EventLoopGroup group;
     private String serverHost;
     private int serverPort;
-
-    protected EventLoopGroup group;
     private boolean connecting = true;
     private AtomicBoolean connected = new AtomicBoolean();
 
@@ -175,62 +173,6 @@ public abstract class AbstractNettyTcpClient<S, M> implements Runnable {
         return idReader.apply(message);
     }
 
-    class TcpClientChannelHandler extends ChannelInitializer<SocketChannel> {
-        @Override
-        protected void initChannel(SocketChannel ch) throws Exception {
-            LogUtil.info("ClientChannelHandler initChannel:" + Thread.currentThread().getId());
-
-            ChannelPipeline pipeLine = ch.pipeline();
-            pipeLine.addLast("frameEncoder", new LengthFieldPrepender(MESSAGE_LENGTH_OFFSET));
-            pipeLine.addLast("clientEncoder", messageEncoder());
-
-            pipeLine.addLast("frameDecoder",
-                    new LengthFieldBasedFrameDecoder(MAX_FRAME_LENGTH, 0, MESSAGE_LENGTH_OFFSET, 0, 4));
-
-            pipeLine.addLast("clientDecoder", messageDecoder());
-            pipeLine.addLast("messageHandler", new TcpClientMessageHandler());
-        }
-    }
-
-    class TcpClientMessageHandler extends SimpleChannelInboundHandler<M> {
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, M msg) throws Exception {
-            LogUtil.info("接收到服务器消息: " + msg);
-
-            if (messageDispatcher != null) {
-                messageDispatcher.dispatch(session, msg);
-            }
-        }
-
-        @Override
-        public void channelActive(ChannelHandlerContext ctx) throws Exception {
-            super.channelActive(ctx);
-            context = ctx;
-            session = sessionCreator.newSession(new NettySession(ctx.channel()));
-        }
-
-        @Override
-        public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-            super.channelUnregistered(ctx);
-            LogUtil.info("ClientChannelHandler channelUnregistered:" + Thread.currentThread().getId());
-        }
-
-        @Override
-        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-            super.channelInactive(ctx);
-            context = null;
-            session = null;
-            LogUtil.info("ClientChannelHandler channelInactive:" + Thread.currentThread().getId());
-        }
-
-        @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            super.exceptionCaught(ctx, cause);
-            LogUtil.info("ClientChannelHandler exceptionCaught:" + Thread.currentThread().getId());
-            ctx.close();
-        }
-    }
-
     public boolean isValidConnect() {
         return connected.get() && context != null && context.channel().isActive();
     }
@@ -332,6 +274,62 @@ public abstract class AbstractNettyTcpClient<S, M> implements Runnable {
     public AbstractNettyTcpClient<S, M> setIdReader(Function<M, Integer> idReader) {
         this.idReader = idReader;
         return this;
+    }
+
+    class TcpClientChannelHandler extends ChannelInitializer<SocketChannel> {
+        @Override
+        protected void initChannel(SocketChannel ch) throws Exception {
+            LogUtil.info("ClientChannelHandler initChannel:" + Thread.currentThread().getId());
+
+            ChannelPipeline pipeLine = ch.pipeline();
+            pipeLine.addLast("frameEncoder", new LengthFieldPrepender(MESSAGE_LENGTH_OFFSET));
+            pipeLine.addLast("clientEncoder", messageEncoder());
+
+            pipeLine.addLast("frameDecoder",
+                    new LengthFieldBasedFrameDecoder(MAX_FRAME_LENGTH, 0, MESSAGE_LENGTH_OFFSET, 0, 4));
+
+            pipeLine.addLast("clientDecoder", messageDecoder());
+            pipeLine.addLast("messageHandler", new TcpClientMessageHandler());
+        }
+    }
+
+    class TcpClientMessageHandler extends SimpleChannelInboundHandler<M> {
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, M msg) throws Exception {
+            LogUtil.info("接收到服务器消息: " + msg);
+
+            if (messageDispatcher != null) {
+                messageDispatcher.dispatch(session, msg);
+            }
+        }
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            super.channelActive(ctx);
+            context = ctx;
+            session = sessionCreator.newSession(new NettySession(ctx.channel()));
+        }
+
+        @Override
+        public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+            super.channelUnregistered(ctx);
+            LogUtil.info("ClientChannelHandler channelUnregistered:" + Thread.currentThread().getId());
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            super.channelInactive(ctx);
+            context = null;
+            session = null;
+            LogUtil.info("ClientChannelHandler channelInactive:" + Thread.currentThread().getId());
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            super.exceptionCaught(ctx, cause);
+            LogUtil.info("ClientChannelHandler exceptionCaught:" + Thread.currentThread().getId());
+            ctx.close();
+        }
     }
 
 }

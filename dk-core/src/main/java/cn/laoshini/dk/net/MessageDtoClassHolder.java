@@ -37,7 +37,9 @@ public enum MessageDtoClassHolder {
     }
 
     public static void prepareUnregister(ClassLoader classLoader) {
-        Set<Integer> messageIds = MESSAGE_ID_MAP.get(classLoader);
+        CACHE.clear();
+
+        Set<Integer> messageIds = MESSAGE_ID_MAP.remove(classLoader);
         if (CollectionUtil.isNotEmpty(messageIds)) {
             for (Integer messageId : messageIds) {
                 if (DTO_CLASS_MAP.containsKey(messageId)) {
@@ -47,8 +49,14 @@ public enum MessageDtoClassHolder {
         }
     }
 
-    public static void unregister(ClassLoader classLoader) {
-        MESSAGE_ID_MAP.remove(classLoader);
+    public static void cancelPrepareUnregister() {
+        for (Map.Entry<Integer, Class<?>> entry : CACHE.entrySet()) {
+            registerDtoClass(entry.getKey(), entry.getValue());
+        }
+        CACHE.clear();
+    }
+
+    public static void unregister() {
         CACHE.clear();
     }
 

@@ -53,6 +53,10 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
 
     private EventLoopGroup workerGroup;
 
+    private INettyMessageEncoder<MessageType> encoder;
+
+    private INettyMessageDecoder<MessageType> decoder;
+
     public AbstractNettyTcpGameServer(GameServerConfig serverConfig, String serverThreadName) {
         super(serverConfig, serverThreadName);
     }
@@ -93,11 +97,11 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
                 @Override
                 protected void initChannel(SocketChannel ch) throws Exception {
                     ch.pipeline().addLast("frameEncoder", new LengthFieldPrepender(MESSAGE_LENGTH_OFFSET));
-                    ch.pipeline().addLast(getMessageEncoder());
+                    ch.pipeline().addLast(getEncoder());
 
                     ch.pipeline().addLast("frameDecoder",
                             new LengthFieldBasedFrameDecoder(MAX_FRAME_LENGTH, 0, MESSAGE_LENGTH_OFFSET, 0, 4));
-                    ch.pipeline().addLast(getMessageDecoder());
+                    ch.pipeline().addLast(getDecoder());
 
                     ch.pipeline().addLast(messageHandler());
                 }
@@ -116,14 +120,14 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
     }
 
     /**
-     * 返回协议编码工具类
+     * 返回协议编码工具类，作为缺省项使用
      *
      * @return
      */
     protected abstract INettyMessageEncoder<MessageType> getMessageEncoder();
 
     /**
-     * 返回协议解码工具类
+     * 返回协议解码工具类，作为缺省项使用
      *
      * @return
      */
@@ -164,6 +168,33 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    public GameServerProtocolEnum getProtocolType() {
+        return GameServerProtocolEnum.TCP;
+    }
+
+    public INettyMessageEncoder<MessageType> getEncoder() {
+        if (encoder == null) {
+            encoder = getMessageEncoder();
+        }
+        return encoder;
+    }
+
+    public void setEncoder(INettyMessageEncoder<MessageType> encoder) {
+        this.encoder = encoder;
+    }
+
+    public INettyMessageDecoder<MessageType> getDecoder() {
+        if (decoder == null) {
+            decoder = getMessageDecoder();
+        }
+        return decoder;
+    }
+
+    public void setDecoder(INettyMessageDecoder<MessageType> decoder) {
+        this.decoder = decoder;
     }
 
     private class DefaultMessageHandler extends ChannelInboundHandlerAdapter {
@@ -236,10 +267,5 @@ public abstract class AbstractNettyTcpGameServer<MessageType> extends AbstractGa
                 }
             }
         }
-    }
-
-    @Override
-    public GameServerProtocolEnum getProtocolType() {
-        return GameServerProtocolEnum.TCP;
     }
 }

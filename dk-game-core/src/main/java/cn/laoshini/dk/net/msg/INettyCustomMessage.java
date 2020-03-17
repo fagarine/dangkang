@@ -2,6 +2,8 @@ package cn.laoshini.dk.net.msg;
 
 import io.netty.buffer.ByteBuf;
 
+import cn.laoshini.dk.domain.msg.IMessage;
+
 /**
  * 自定义消息类型接口，专为读写netty的ByteBuf设计，注意：
  * <p>

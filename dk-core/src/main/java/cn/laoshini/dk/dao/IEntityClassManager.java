@@ -36,6 +36,11 @@ public interface IEntityClassManager {
     void prepareUnregister(ClassLoader classLoader);
 
     /**
+     * 取消注销预备操作
+     */
+    void cancelPrepareUnregister();
+
+    /**
      * 批量注销
      */
     void unregister();

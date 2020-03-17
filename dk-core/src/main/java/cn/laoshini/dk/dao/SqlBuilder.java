@@ -19,8 +19,8 @@ import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.constant.DBTypeEnum;
 import cn.laoshini.dk.constant.QueryConditionKeyEnum;
-import cn.laoshini.dk.dao.query.AbstractQueryCondition;
-import cn.laoshini.dk.dao.query.PageQueryCondition;
+import cn.laoshini.dk.domain.query.AbstractQueryCondition;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.util.ReflectHelper;
 import cn.laoshini.dk.util.StringUtil;
@@ -32,24 +32,21 @@ import cn.laoshini.dk.util.TypeUtil;
  * @author fagarine
  */
 public class SqlBuilder {
-    private SqlBuilder() {
-    }
-
     public static final String DEFAULT_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-
     /**
      * 单引号
      */
     public static final String QUOTE = Constants.SINGLE_QUOTES;
-
     /**
      * 半角逗号
      */
     public static final String COMMA = Constants.SEPARATOR_COMMA;
-
     private static final Set<String> SIMPLE_TYPE_SET = new HashSet<>();
-
     private static final Map<Class<?>, Integer> JDBC_TYPE_MAP = new HashMap<>();
+    /**
+     * 当前系统中使用的数据库类型
+     */
+    private static DBTypeEnum dbType;
 
     static {
         SIMPLE_TYPE_SET.add(boolean.class.getName());
@@ -84,16 +81,14 @@ public class SqlBuilder {
         JDBC_TYPE_MAP.put(Byte[].class, Types.BLOB);
         JDBC_TYPE_MAP.put(BigDecimal.class, Types.DECIMAL);
         JDBC_TYPE_MAP.put(String.class, Types.VARCHAR);
-        JDBC_TYPE_MAP.put(Date.class, Types.DATE);
-        JDBC_TYPE_MAP.put(java.sql.Date.class, Types.DATE);
+        JDBC_TYPE_MAP.put(Date.class, Types.TIMESTAMP);
+        JDBC_TYPE_MAP.put(java.sql.Date.class, Types.TIMESTAMP);
         JDBC_TYPE_MAP.put(java.sql.Time.class, Types.TIME);
         JDBC_TYPE_MAP.put(java.sql.Timestamp.class, Types.TIMESTAMP);
     }
 
-    /**
-     * 当前系统中使用的数据库类型
-     */
-    private static DBTypeEnum dbType;
+    private SqlBuilder() {
+    }
 
     public static int getJdbcType(Object bean) {
         if (bean == null) {

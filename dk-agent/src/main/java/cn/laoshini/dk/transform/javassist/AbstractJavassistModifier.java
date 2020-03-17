@@ -125,16 +125,16 @@ public abstract class AbstractJavassistModifier extends AbstractClassFileModifie
         if (code != null && !code.isEmpty()) {
             CtConstructor constructor = cc.getClassInitializer();
             try {
-                System.out.println(
-                        String.format("代码注入静态构造方法, method:%s.%s(), insertCode:%s", cc.getName(), constructor.getName(),
-                                code));
+                if (constructor == null) {
+                    constructor = cc.makeClassInitializer();
+                }
+                System.out.println(String.format("注入静态变量代码, class:%s, insertCode:%s", cc.getName(), code));
                 constructor.insertBefore(code);
+                return true;
             } catch (CannotCompileException e) {
-                System.out.println(String.format("尝试向静态构造方法[%s]添加代码出错", constructor.getName()));
+                System.out.println("尝试注入静态变量代码出错");
                 e.printStackTrace();
-                return false;
             }
-            return true;
         }
         return false;
     }

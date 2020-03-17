@@ -1,15 +1,16 @@
 package cn.laoshini.dk.util;
 
+import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.GameConstant;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.msg.BaseProtobufMessage;
-import cn.laoshini.dk.net.msg.IByteDto;
-import cn.laoshini.dk.net.msg.ReqMessage;
 
 /**
  * 字节数组格式的消息辅助工作类
@@ -18,10 +19,6 @@ import cn.laoshini.dk.net.msg.ReqMessage;
  */
 public class ByteMessageUtil {
     private ByteMessageUtil() {
-    }
-
-    public static void main(String[] args) {
-        System.out.println(IByteDto.SUPPORTED_TYPES);
     }
 
     public static int bytesToInt(byte[] bytes, int startIndex, int length) {
@@ -103,10 +100,10 @@ public class ByteMessageUtil {
      */
     public static ReqMessage<Message> baseToReqMessage(BaseProtobufMessage.Base msg) {
         ReqMessage<Message> reqMessage = new ReqMessage<>();
-        reqMessage.setId(msg.getCmd());
+        reqMessage.setId(msg.getMessageId());
         reqMessage.setParams(msg.getParams());
 
-        Class<Message> type = MessageHandlerHolder.getProtobufHandlerGenericType(msg.getCmd());
+        Class<Message> type = MessageHandlerHolder.getProtobufHandlerGenericType(msg.getMessageId());
         try {
             if (type != null) {
                 reqMessage.setData(msg.getDetail().unpack(type));
@@ -115,6 +112,64 @@ public class ByteMessageUtil {
             throw new MessageException(GameCodeEnum.PARAM_ERROR, "any.unpack.error", "解析protobuf消息的detail数据出错:" + msg);
         }
         return reqMessage;
+    }
+
+    /**
+     * {@link BaseProtobufMessage.Base}对象转为{@link RespMessage}对象
+     *
+     * @param msg 消息内容
+     * @param type 消息内容类型
+     * @return 该方法不会返回null
+     */
+    public static RespMessage<Message> baseToRespMessage(BaseProtobufMessage.Base msg, Class<Message> type) {
+        RespMessage<Message> respMessage = new RespMessage<>();
+        respMessage.setId(msg.getMessageId());
+        respMessage.setCode(msg.getCode());
+        respMessage.setParams(msg.getParams());
+
+        if (type != null) {
+            try {
+                respMessage.setData(msg.getDetail().unpack(type));
+            } catch (InvalidProtocolBufferException e) {
+                throw new MessageException(GameCodeEnum.PARAM_ERROR, "any.unpack.error",
+                        "解析protobuf消息的detail数据出错:" + msg);
+            }
+        }
+        return respMessage;
+    }
+
+    public static BaseProtobufMessage.Base buildBase(int messageId, int code, String params, Any detail) {
+        BaseProtobufMessage.Base.Builder builder = BaseProtobufMessage.Base.newBuilder();
+        builder.setMessageId(messageId).setCode(code).setParams(params).setDetail(detail);
+        return builder.build();
+    }
+
+    public static BaseProtobufMessage.Base buildBase(int messageId, int code, String params, Message detail,
+            String typeUrlPrefix) {
+        BaseProtobufMessage.Base.Builder builder = BaseProtobufMessage.Base.newBuilder();
+        builder.setMessageId(messageId).setCode(code).setParams(params);
+        if (detail != null) {
+            if (detail instanceof Any) {
+                builder.setDetail((Any) detail);
+            } else if (typeUrlPrefix == null) {
+                builder.setDetail(Any.pack(detail));
+            } else {
+                builder.setDetail(Any.pack(detail, typeUrlPrefix));
+            }
+        }
+        return builder.build();
+    }
+
+    public static BaseProtobufMessage.Base buildBase(int messageId, Message detail, String typeUrl) {
+        BaseProtobufMessage.Base.Builder builder = BaseProtobufMessage.Base.newBuilder();
+        builder.setMessageId(messageId).setCode(GameCodeEnum.OK.getCode()).setDetail(Any.pack(detail, typeUrl));
+        return builder.build();
+    }
+
+    public static BaseProtobufMessage.Base buildErrorBase(int messageId, int code, String params) {
+        BaseProtobufMessage.Base.Builder builder = BaseProtobufMessage.Base.newBuilder();
+        builder.setMessageId(messageId).setCode(code).setParams(params);
+        return builder.build();
     }
 
     /**

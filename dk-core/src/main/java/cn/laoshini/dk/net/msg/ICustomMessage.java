@@ -3,6 +3,7 @@ package cn.laoshini.dk.net.msg;
 import java.nio.ByteBuffer;
 
 import cn.laoshini.dk.constant.GameConstant;
+import cn.laoshini.dk.domain.msg.IMessage;
 
 /**
  * 自定义消息类型设计接口，实现该接口表示实现类为一个自定义格式的消息类，同时该类必须添加@{@link CustomMsg}注解，

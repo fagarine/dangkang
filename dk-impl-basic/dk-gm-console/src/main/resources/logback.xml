@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<configuration>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder charset="UTF-8"> <!-- encoder 可以指定字符集，对于中文输出有意义 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %class %level %logger -- %msg -- %n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="commonAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/common.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--日志文件输出的文件名 -->
+            <FileNamePattern>logs/common.%d{yyyy-MM-dd}_%i.log</FileNamePattern>
+            <!--日志文件保留天数 -->
+            <maxHistory>90</maxHistory>
+            <!--日志文件最大的大小 -->
+            <maxFileSize>10MB</maxFileSize>
+            <!--所有该日志文件的总大小，超过该上限后，最旧的日志将被异步删除。maxHistory优先于该属性执行-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!--格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度， %logger{50}输出日志的类,50代表包名加类名的总长度限制，%msg：日志消息，%n是换行符 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+    </appender>
+
+    <appender name="errorAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/error.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <FileNamePattern>logs/error.%d{yyyy-MM-dd}.log</FileNamePattern>
+            <!--日志文件保留天数 -->
+            <maxHistory>90</maxHistory>
+            <!--所有该日志文件的总大小，超过该上限后，最旧的日志将被异步删除。maxHistory优先于该属性执行-->
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %level %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="stdout"/>
+        <!--<appender-ref ref="commonAppender" />-->
+    </root>
+    <logger name="org.springframework" level="DEBUG" additivity="false">
+        <appender-ref ref="commonAppender"/>
+        <appender-ref ref="errorAppender"/>
+        <appender-ref ref="stdout"/>
+    </logger>
+    <logger name="org.apache" level="INFO" additivity="false">
+        <appender-ref ref="commonAppender"/>
+        <appender-ref ref="stdout"/>
+    </logger>
+    <logger name="cn.laoshini.dk" level="DEBUG" additivity="false">
+        <appender-ref ref="commonAppender"/>
+        <appender-ref ref="errorAppender"/>
+        <appender-ref ref="stdout"/>
+    </logger>
+</configuration>

@@ -11,11 +11,11 @@ import com.alibaba.fastjson.JSONObject;
 
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.GameConstant;
+import cn.laoshini.dk.domain.msg.AbstractMessage;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.net.MessageHolder;
-import cn.laoshini.dk.net.msg.AbstractMessage;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -56,7 +56,7 @@ public class MessageUtil {
         if (GameCodeEnum.OK.getCode() == message.getCode()) {
             Class<?> clazz = MessageHolder.getMessageClass(messageId);
             JSONObject detail = object.getJSONObject(GameConstant.MESSAGE_DETAIL_KEY);
-            if (clazz != null) {
+            if (clazz != null && detail != null) {
                 message.setData(detail.toJavaObject(clazz));
             } else {
                 message.setData(detail);

@@ -1,6 +1,7 @@
 package cn.laoshini.dk.module.registry;
 
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.jar.JarFile;
@@ -8,7 +9,6 @@ import java.util.jar.JarFile;
 import org.springframework.util.StringUtils;
 
 import cn.laoshini.dk.manager.SpringBeanManager;
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 import cn.laoshini.dk.util.ReflectHelper;
 import cn.laoshini.dk.util.SpringUtils;
@@ -18,34 +18,55 @@ import cn.laoshini.dk.util.SpringUtils;
  *
  * @author fagarine
  */
-class ModuleSpringBeanRegistry extends AbstractModuleRegistry {
-
-    ModuleSpringBeanRegistry(ModuleLoaderContext context) {
-        super(context);
-    }
+class ModuleSpringBeanRegistry extends AbstractRecoverableModuleRegistry {
 
     /**
      * 记录模块中已加载到Spring容器中的实例名称
      */
     private Set<String> springBeanNames = new LinkedHashSet<>();
+    private List<Class<?>> springClasses = new LinkedList<>();
+
+    ModuleSpringBeanRegistry(ModuleLoaderContext context) {
+        super(context);
+    }
+
+    @Override
+    public void prepareRegister(JarFile moduleJarFile) {
+        super.prepareRegister(moduleJarFile);
+
+        List<Class<?>> classes = ReflectHelper
+                .getAllSpringAnnotationInJarFile(moduleJarFile, getModuleClassLoader(), null, null);
+        springClasses.addAll(classes);
+    }
+
+    @Override
+    protected void cancelPrepareRegister() {
+        super.cancelPrepareRegister();
+        springClasses.clear();
+    }
 
     @Override
     public void register(JarFile jarFile) {
-        List<Class<?>> classes = ReflectHelper
-                .getAllSpringAnnotationInJarFile(jarFile, getModuleClassLoader(), null, null);
-        for (Class<?> clazz : classes) {
-            SpringUtils.registerSpringBean(clazz);
+        if (!springClasses.isEmpty()) {
+            for (Class<?> clazz : springClasses) {
+                SpringUtils.registerSpringBean(clazz);
 
-            String beanName = StringUtils.uncapitalize(clazz.getSimpleName());
-            springBeanNames.add(beanName);
-            SpringBeanManager.registerBean(beanName, clazz);
+                String beanName = StringUtils.uncapitalize(clazz.getSimpleName());
+                springBeanNames.add(beanName);
+                SpringBeanManager.registerBean(beanName, clazz);
+            }
+            springClasses.clear();
         }
-
     }
 
     @Override
     public void prepareUnregister() {
         SpringBeanManager.prepareUnregister(getModuleClassLoader());
+    }
+
+    @Override
+    protected void cancelPrepareUnregister() {
+        SpringBeanManager.cancelPrepareUnregister();
     }
 
     @Override
@@ -57,6 +78,8 @@ class ModuleSpringBeanRegistry extends AbstractModuleRegistry {
     protected void cleanUp() {
         super.cleanUp();
 
+        springClasses.clear();
+        springClasses = null;
         springBeanNames.clear();
         springBeanNames = null;
     }

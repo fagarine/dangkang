@@ -1,8 +1,10 @@
 package cn.laoshini.dk.server;
 
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
+import cn.laoshini.dk.constant.ServerType;
 import cn.laoshini.dk.domain.GameServerConfig;
 import cn.laoshini.dk.util.LogUtil;
 
@@ -16,21 +18,31 @@ public abstract class AbstractGameServer extends AbstractServer {
     /**
      * 游戏服务器配置信息
      */
-    private GameServerConfig serverConfig;
+    private final GameServerConfig serverConfig;
 
     /**
      * 服务器线程名称
      */
-    private String serverThreadName;
+    private final String serverThreadName;
 
     /**
      * 记录在线用户数（有效连接数）
      */
     private final AtomicInteger onlineCount = new AtomicInteger();
 
+    /**
+     * 如果服务器当前不对外开放，提示信息
+     */
+    private String tips;
+
+    /**
+     * 如果服务器当前不对外开放，服务器预计对外开放时间
+     */
+    private Date openTime;
+
     public AbstractGameServer(GameServerConfig serverConfig, String serverThreadName) {
         this.serverConfig = serverConfig;
-        this.serverThreadName = serverThreadName + "-" + serverConfig.getId();
+        this.serverThreadName = serverThreadName + "-" + serverConfig.getServerId();
     }
 
     @Override
@@ -84,19 +96,62 @@ public abstract class AbstractGameServer extends AbstractServer {
         return onlineCount.get();
     }
 
-    public Integer getServerId() {
-        return serverConfig.getId();
+    void pauseServer(String tips, Date openTime) {
+        pauseServer();
+        this.tips = tips;
+        this.openTime = openTime;
+    }
+
+    @Override
+    protected void unPauseServer() {
+        super.unPauseServer();
+        this.tips = null;
+        this.openTime = null;
+    }
+
+    /**
+     * 启动服务器
+     */
+    protected void startServer() {
+        start();
+    }
+
+    public int getGameId() {
+        return serverConfig.getGameId();
     }
 
     public String getGameName() {
-        return serverConfig.getName();
+        return serverConfig.getGameName();
     }
 
-    public Integer getPort() {
+    public int getServerId() {
+        return serverConfig.getServerId();
+    }
+
+    public String getServerName() {
+        return serverConfig.getServerName();
+    }
+
+    public int getPort() {
         return serverConfig.getPort();
     }
 
     public GameServerConfig getServerConfig() {
-        return serverConfig;
+        GameServerConfig config = serverConfig;
+        return GameServerConfig.builder().serverId(config.getServerId()).serverName(config.getServerName())
+                .gameName(config.getGameName()).port(config.getPort()).protocol(config.getProtocol())
+                .idleTime(config.getIdleTime()).tcpNoDelay(config.isTcpNoDelay()).build();
+    }
+
+    public String getTips() {
+        return tips;
+    }
+
+    public Date getOpenTime() {
+        return openTime;
+    }
+
+    public boolean isGmServer() {
+        return ServerType.GM.equals(serverConfig.getServerType());
     }
 }

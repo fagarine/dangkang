@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -24,10 +25,10 @@ import cn.laoshini.dk.exception.BusinessException;
  * @author fagarine
  */
 public class FileUtil {
+    public static final FileFilter CLASS_FILE_FILTER = FileUtil::isClassFile;
+
     private FileUtil() {
     }
-
-    public static final FileFilter CLASS_FILE_FILTER = FileUtil::isClassFile;
 
     public static String getProjectRoot() {
         return System.getProperty("user.dir");
@@ -43,6 +44,10 @@ public class FileUtil {
 
     public static String readFileToString(File filepath) throws IOException {
         return FileCopyUtils.copyToString(new FileReader(filepath));
+    }
+
+    public static String readFileToString(InputStream in) throws IOException {
+        return FileCopyUtils.copyToString(new InputStreamReader(in));
     }
 
     public static void writeFile(String filepath, String content) {
@@ -83,7 +88,13 @@ public class FileUtil {
             throw new BusinessException("file.path.illegal", "文件路径不能为目录:" + filepath);
         } else if (!file.exists()) {
             try {
-                if (!file.mkdirs() || !file.createNewFile()) {
+                if (!file.getParentFile().exists()) {
+                    if (!file.mkdirs()) {
+                        throw new BusinessException("create.file.denied", "文件路径创建失败:" + filepath);
+                    }
+                }
+
+                if (!file.createNewFile()) {
                     throw new BusinessException("create.file.denied", "文件创建失败:" + filepath);
                 }
             } catch (IOException e) {
@@ -162,12 +173,6 @@ public class FileUtil {
         return null;
     }
 
-    static class DynamicClassLoader extends ClassLoader {
-        Class<?> loadClassFile(byte[] b) {
-            return this.defineClass(null, b, 0, b.length);
-        }
-    }
-
     public static void readHotfixFiles(File file, List<HotfixFile> fileList) {
         if (file.isDirectory()) {
             File[] files = file.listFiles(CLASS_FILE_FILTER);
@@ -210,6 +215,12 @@ public class FileUtil {
                 LogUtil.info(String.format("file:%s", curFile.getName()), e);
             }
 
+        }
+    }
+
+    static class DynamicClassLoader extends ClassLoader {
+        Class<?> loadClassFile(byte[] b) {
+            return this.defineClass(null, b, 0, b.length);
         }
     }
 }

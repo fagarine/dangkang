@@ -10,6 +10,15 @@ import cn.laoshini.dk.domain.GameSubject;
 @FunctionalInterface
 public interface IByteMessageEncoder<M> extends IMessageEncoder<byte[], M> {
 
+    /**
+     * 创建并返回一个新的Protobuf消息编码器
+     *
+     * @return 返回Protobuf消息编码器
+     */
+    static ProtobufByteMessageEncoder newProtobufEncoder() {
+        return new ProtobufByteMessageEncoder();
+    }
+
     @Override
     default byte[] encode(M message, GameSubject subject) {
         return encode(message);
@@ -22,13 +31,4 @@ public interface IByteMessageEncoder<M> extends IMessageEncoder<byte[], M> {
      * @return 返回编码后的数据，允许返回null
      */
     byte[] encode(M message);
-
-    /**
-     * 创建并返回一个新的Protobuf消息编码器
-     *
-     * @return 返回Protobuf消息编码器
-     */
-    static ProtobufByteMessageEncoder newProtobufEncoder() {
-        return new ProtobufByteMessageEncoder();
-    }
 }

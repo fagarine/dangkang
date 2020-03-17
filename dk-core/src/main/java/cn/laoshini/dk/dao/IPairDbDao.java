@@ -5,8 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import cn.laoshini.dk.annotation.ConfigurableFunction;
-import cn.laoshini.dk.dao.query.BeanQueryCondition;
-import cn.laoshini.dk.dao.query.ListQueryCondition;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
+import cn.laoshini.dk.domain.query.ListQueryCondition;
 import cn.laoshini.dk.serialization.IDataSerializable;
 import cn.laoshini.dk.util.ReflectUtil;
 

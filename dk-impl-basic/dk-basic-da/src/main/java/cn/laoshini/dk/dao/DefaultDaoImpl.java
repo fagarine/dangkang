@@ -8,10 +8,10 @@ import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.annotation.FunctionVariousWays;
 import cn.laoshini.dk.condition.ConditionalOnPropertyValue;
 import cn.laoshini.dk.constant.Constants;
-import cn.laoshini.dk.dao.query.BeanQueryCondition;
-import cn.laoshini.dk.dao.query.ListQueryCondition;
-import cn.laoshini.dk.dao.query.Page;
-import cn.laoshini.dk.dao.query.PageQueryCondition;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
+import cn.laoshini.dk.domain.query.ListQueryCondition;
+import cn.laoshini.dk.domain.query.Page;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 import cn.laoshini.dk.util.ReflectHelper;
 
 /**
@@ -28,13 +28,13 @@ public final class DefaultDaoImpl implements IDefaultDao {
     /**
      * 关系数据库数据访问对象（仅在系统使用关系数据库的情况下存在）
      */
-    @FunctionDependent(nullable = true, afterExecute = "init")
+    @FunctionDependent(nullable = true, initMethod = "init")
     private IRelationalDbDaoManager relationalDbDaoManager;
 
     /**
      * 键值对数据库的数据访问对象（仅在系统不使用关系数据库启动的情况下存在）
      */
-    @FunctionDependent(nullable = true, afterExecute = "init")
+    @FunctionDependent(nullable = true, initMethod = "init")
     private IPairDbDao pairDbDao;
 
     @FunctionDependent

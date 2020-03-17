@@ -16,6 +16,8 @@ public interface IModuleRegistry {
      */
     ClassLoader getModuleClassLoader();
 
+    void prepareRegister(JarFile moduleJarFile);
+
     /**
      * 执行模块相关功能的注册
      *
@@ -32,4 +34,28 @@ public interface IModuleRegistry {
      * 执行注销操作，旧模块调用
      */
     void unregister();
+
+    /**
+     * 回退操作
+     */
+    void rollback();
+
+    enum Phase {
+        /**
+         * 初始阶段，功能未注册
+         */
+        UNREGISTERED,
+        /**
+         * 已做好注册准备
+         */
+        PREPARE_REGISTER,
+        /**
+         * 已注册
+         */
+        REGISTERED,
+        /**
+         * 准备注销
+         */
+        PREPARE_UNREGISTER;
+    }
 }

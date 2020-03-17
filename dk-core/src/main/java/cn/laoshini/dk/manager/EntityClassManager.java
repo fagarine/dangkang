@@ -94,12 +94,22 @@ public class EntityClassManager implements IEntityClassManager {
 
     @Override
     public void prepareUnregister(ClassLoader classLoader) {
+        entityClassCache.clear();
+
         Collection<String> names = moduleMap.remove(classLoader);
         if (names != null && !names.isEmpty()) {
             for (String name : names) {
-                entityClassCache.put(name, entityClassMap.remove(name));
+                Class<?> clazz = entityClassMap.remove(name);
+                entityClassCache.put(name, clazz);
+                classTableNameMap.remove(clazz.getName());
             }
         }
+    }
+
+    @Override
+    public void cancelPrepareUnregister() {
+        batchRegister(entityClassCache);
+        entityClassCache.clear();
     }
 
     @Override

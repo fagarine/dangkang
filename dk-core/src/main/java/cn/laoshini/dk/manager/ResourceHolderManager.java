@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import cn.laoshini.dk.annotation.ResourceHolder;
 import cn.laoshini.dk.module.loader.ModuleClassLoader;
@@ -39,7 +40,7 @@ public enum ResourceHolderManager {
     private final Map<String, Object> holderMap = new ConcurrentHashMap<>();
 
     /**
-     * 模块热更时，暂时记录模块内的自由持有者对象
+     * 记录模块内的资源持有者对象
      */
     private final Map<ClassLoader, Set<Object>> moduleHolderMap = new ConcurrentHashMap<>();
 
@@ -93,11 +94,23 @@ public enum ResourceHolderManager {
             return;
         }
 
+        INSTANCE.oldHolderCache.clear();
         for (String holderKey : oldHolderKeys) {
             if (INSTANCE.holderMap.containsKey(holderKey)) {
                 INSTANCE.oldHolderCache.put(holderKey, INSTANCE.holderMap.remove(holderKey));
             }
         }
+    }
+
+    public static void prepareUnregister(ClassLoader classLoader) {
+        prepareUnregister(getHolderKeys(classLoader));
+    }
+
+    public static void cancelPrepareUnregister() {
+        for (Map.Entry<String, Object> entry : INSTANCE.oldHolderCache.entrySet()) {
+            INSTANCE.holderMap.put(entry.getKey(), entry.getValue());
+        }
+        INSTANCE.oldHolderCache.clear();
     }
 
     public static void unregisterOldHolders() {
@@ -115,6 +128,12 @@ public enum ResourceHolderManager {
 
     public static Collection<String> getHolderKeys() {
         return INSTANCE.holderMap.keySet();
+    }
+
+    public static Collection<String> getHolderKeys(ClassLoader classLoader) {
+        return INSTANCE.holderMap.entrySet().stream()
+                .filter(entry -> entry.getValue().getClass().getClassLoader().equals(classLoader))
+                .map(Map.Entry::getKey).collect(Collectors.toSet());
     }
 
     public static Map<String, String> getHoldersSnapshot() {

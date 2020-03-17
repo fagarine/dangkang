@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.laoshini.dk.config.center.mapper.PropertyHistoryMapper">
+
+    <resultMap id="BaseResultMap" type="cn.laoshini.dk.config.center.entity.PropertyHistory">
+        <result column="id" property="id"/>
+        <result column="application" property="application"/>
+        <result column="profile" property="profile"/>
+        <result column="label" property="label"/>
+        <result column="version" property="version"/>
+        <result column="content" property="content" typeHandler="cn.laoshini.dk.config.center.mybatis.PropertyChangeJsonTypeHandler"/>
+        <result column="status" property="status"/>
+        <result column="operator" property="operator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <select id="selectReleasedRecordByApplication" resultMap="BaseResultMap">
+        SELECT `id`,
+               `application`,
+               `profile`,
+               `label`,
+               `version`,
+               `content`,
+               `status`,
+               `operator`,
+               `create_time`,
+               `update_time`
+        FROM `properties_history`
+        WHERE application = #{application}
+          AND `status` = 'RELEASED'
+    </select>
+
+    <select id="selectMaxReleasedVersion" resultType="java.lang.Integer">
+        SELECT `version`
+        FROM `properties_history`
+        WHERE application = #{application}
+          AND profile = #{profile}
+          AND label = #{label}
+          AND `status` = 'RELEASED'
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.Integer">
+        SELECT `id`,
+               `application`,
+               `profile`,
+               `label`,
+               `version`,
+               `content`,
+               `status`,
+               `operator`,
+               `create_time`,
+               `update_time`
+        FROM `properties_history`
+        WHERE id = #{id}
+    </select>
+
+    <sql id="column_no_id">
+        `application`,`profile`,`label`,`version`,`content`,`status`,`operator`,`create_time`
+    </sql>
+
+    <insert id="insert" parameterType="cn.laoshini.dk.config.center.entity.PropertyHistory" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO `properties_history`(<include refid="column_no_id"/>)
+        VALUES (#{application},#{profile},#{label},#{version},
+        #{content,typeHandler=cn.laoshini.dk.config.center.mybatis.PropertyChangeJsonTypeHandler},
+        'RELEASED',#{operator},now())
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO `properties_history` (<include refid="column_no_id"/>)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.application},#{item.profile},#{item.label},#{item.version},
+            #{item.content,typeHandler=cn.laoshini.dk.config.center.mybatis.PropertyChangeJsonTypeHandler},
+            #{item.operator},'RELEASED',now()
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateRolledBack" parameterType="java.lang.Integer">
+        UPDATE `properties_history`
+        SET `status`='ROLLED_BACK',
+            update_time=now()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

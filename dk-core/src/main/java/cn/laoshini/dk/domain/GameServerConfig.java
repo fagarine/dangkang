@@ -9,6 +9,7 @@ import lombok.ToString;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
 import cn.laoshini.dk.constant.MessageFormatEnum;
+import cn.laoshini.dk.constant.ServerType;
 
 /**
  * @author fagarine
@@ -22,19 +23,34 @@ import cn.laoshini.dk.constant.MessageFormatEnum;
 public class GameServerConfig {
 
     /**
-     * 唯一id
+     * 游戏id
      */
-    private int id;
+    private int gameId;
 
     /**
      * 游戏名称
      */
-    private String name;
+    private String gameName;
 
     /**
-     * TCP游戏服务器占用端口，仅在使用TCP通信时有效
+     * 游戏服唯一id
+     */
+    private int serverId;
+
+    /**
+     * 游戏服名称
+     */
+    private String serverName;
+
+    /**
+     * 游戏服务器占用端口
      */
     private int port;
+
+    /**
+     * 服务器类型
+     */
+    private ServerType serverType;
 
     /**
      * 游戏服务器使用什么协议通信（HTTP,TCP,UDP等），类型参见：GameServerProtocolEnum

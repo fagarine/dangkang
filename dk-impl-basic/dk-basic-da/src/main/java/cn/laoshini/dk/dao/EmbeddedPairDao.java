@@ -37,7 +37,7 @@ import cn.laoshini.dk.util.StringUtil;
 @ConditionalOnPropertyMissing(prefix = "dk.rdb", name = { "url", "username" })
 public class EmbeddedPairDao implements IPairDbDao {
 
-    @Value("${dangKangPairDaoProperties.levelDbFolder:#{dangKangPairDaoProperties.levelDbFolder}}")
+    @Value("${dk.pair.level-db-folder:/levelDB}")
     private String dbFolder;
 
     /**

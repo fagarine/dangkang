@@ -16,6 +16,10 @@ public interface IClassScanner<R> {
 
     IClassFilter ALWAYS_TRUE = clazz -> true;
 
+    static <R> DefaultClassScanner<R> defaultScanner() {
+        return new DefaultClassScanner<>();
+    }
+
     /**
      * 类过滤器，满足条件的类返回true
      *
@@ -84,10 +88,6 @@ public interface IClassScanner<R> {
             result = (List<R>) classes;
         }
         return result;
-    }
-
-    static <R> DefaultClassScanner<R> defaultScanner() {
-        return new DefaultClassScanner<>();
     }
 
 }

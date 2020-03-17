@@ -1,9 +1,9 @@
 package cn.laoshini.dk.net.handler;
 
 import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.exception.MessageException;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 
 /**
  * 短连接消息处理接口

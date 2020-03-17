@@ -1,5 +1,7 @@
 package cn.laoshini.dk.util;
 
+import java.util.Collection;
+
 import cn.laoshini.dk.constant.Constants;
 
 /**
@@ -65,6 +67,22 @@ public class StringUtil {
 
     public static String appendKeys(Object[] keys, String delimiter) {
         return appendAllWithDelimiter(keys, delimiter, true);
+    }
+
+    public static String appendSqlCondition(Collection<String> keys) {
+        if (CollectionUtil.isEmpty(keys)) {
+            return null;
+        }
+
+        StringBuilder sb = new StringBuilder("'");
+        int count = 0;
+        for (String key : keys) {
+            if (count++ > 0) {
+                sb.append("','");
+            }
+            sb.append(key);
+        }
+        return sb.append("'").toString();
     }
 
     public static boolean isEmptyString(String str) {

@@ -3,9 +3,9 @@ package cn.laoshini.dk.server.impl;
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
 import cn.laoshini.dk.domain.GameServerConfig;
 import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
 import cn.laoshini.dk.net.handler.MessageReceiveDispatcher;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.server.AbstractGameServer;
 import cn.laoshini.dk.util.LogUtil;
 

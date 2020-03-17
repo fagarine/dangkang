@@ -1,0 +1,2 @@
+# 配置中心客户端当康容器启动类
+cn.laoshini.dk.common.IDkApplicationContext=cn.laoshini.dk.config.client.DkConfigClientApplicationContext

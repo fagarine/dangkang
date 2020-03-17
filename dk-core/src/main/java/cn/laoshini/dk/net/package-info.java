@@ -12,7 +12,7 @@
  * 3. 自定义格式消息，这个在我看来具有无限的扩展性，但是对于不了解这方面的人，有一个学习的过程，要求比较高；
  * 但是，本系统会提供自定义消息格式的表达式，支持表达式生成消息或者通过表达式自动生成、编译、加载消息类文件，<br>
  * 综上，我比较倾向使用自定义消息；
- * 以上这些，用户都不需要太多了解，因为所有这些格式的消息都会被转换为{@link cn.laoshini.dk.net.msg.ReqMessage}进入Handler
+ * 以上这些，用户都不需要太多了解，因为所有这些格式的消息都会被转换为{@link cn.laoshini.dk.domain.msg.ReqMessage}进入Handler
  * </p>
  * <p><br>
  * 下面说Handler，本系统中关于网络交互中的Handler是指：专门处理消息的类，其顶层接口为:{@link cn.laoshini.dk.net.handler.IMessageHandler}<br>
@@ -26,11 +26,11 @@
  *
  * @author fagarine
  * @see cn.laoshini.dk.net.handler.IMessageHandler
- * @see cn.laoshini.dk.net.msg.IMessage
- * @see cn.laoshini.dk.net.msg.AbstractMessage
+ * @see cn.laoshini.dk.domain.msg.IMessage
+ * @see cn.laoshini.dk.domain.msg.AbstractMessage
  * @see cn.laoshini.dk.net.msg.ICustomDto
  * @see cn.laoshini.dk.net.msg.ICustomMessage
- * @see cn.laoshini.dk.net.msg.ReqMessage
+ * @see cn.laoshini.dk.domain.msg.ReqMessage
  * @see cn.laoshini.dk.net.codec.IMessageCodec
  */
 package cn.laoshini.dk.net;

@@ -48,7 +48,7 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
         try {
-            LogUtil.info("HTTP游戏 [{}] 开始启动...", getGameName());
+            LogUtil.start("HTTP游戏 [{}] 开始启动...", getGameName());
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class).option(ChannelOption.SO_BACKLOG, 1024)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -65,7 +65,10 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
                     });
 
             Channel ch = b.bind(port).sync().channel();
-            LogUtil.start("HTTP游戏 [{}] 成功绑定端口 [{}]，启动成功", getGameName(), port);
+            LogUtil.start("HTTP游戏 [{}] 成功绑定端口 [{}]", getGameName(), port);
+
+            // 执行游戏服启动成功后的逻辑
+            serverStartsSuccessful();
 
             ch.closeFuture().sync();
         } catch (InterruptedException e) {
@@ -76,16 +79,26 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
         }
     }
 
+    @Override
+    protected void shutdown0() {
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
+
+        clearInnerSessions();
+        clearSessions();
+    }
+
     private class DefaultHttpServerHandler extends SimpleChannelInboundHandler<HttpObject> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, HttpObject msg) throws Exception {
-            if (shutdown.get()) {
+            if (isShutdown()) {
                 return;
             }
 
-            if (pause.get()) {
+            if (isPaused()) {
                 // 业务暂停时，停止接受客户端消息，或返回提示信息，或考虑其他的处理方式
+                sendPauseMessage(getSessionByChannel(ctx.channel()));
                 return;
             }
 
@@ -113,12 +126,20 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
 
                         // 记录URI和header等信息
                         innerSession.setUri(uri);
+                        innerSession.setMethod(request.method().name());
                         innerSession.setHeaders(request.headers().entries());
 
                         S session = getGameServerRegister().sessionCreator().newSession(innerSession);
+                        recordSession(channelId, session);
+
+                        if (getGameServerRegister().connectOpenedOperation() != null) {
+                            getGameServerRegister().connectOpenedOperation().onConnected(session);
+                        }
 
                         // 消息解码
                         M message = getGameServerRegister().decoder().decode(in, null);
+                        LogUtil.c2sMessage("读取到http消息:" + message);
+
                         // 消息分发
                         dispatchMessage(session, message);
                     }
@@ -143,7 +164,6 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
             super.channelInactive(ctx);
 
             Long channelId = getChannelId(ctx.channel());
-
             S session = removeSession(channelId);
             if (session != null && getGameServerRegister().connectClosedOperation() != null) {
                 getGameServerRegister().connectClosedOperation().onDisconnected(session);
@@ -153,12 +173,6 @@ public class InnerNettyHttpGameServer<S, M> extends AbstractInnerNettyGameServer
                 innerSession.close();
             }
         }
-    }
-
-    @Override
-    protected void shutdown0() {
-        bossGroup.shutdownGracefully();
-        workerGroup.shutdownGracefully();
     }
 
 }

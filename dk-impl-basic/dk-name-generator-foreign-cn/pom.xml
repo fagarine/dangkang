@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>dk-impl-basic</artifactId>
+        <groupId>cn.laoshini.dk</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>dk-name-generator-foreign-cn</artifactId>
+
+    <description>简体中文形式的外国人名称生成器实现项目</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.laoshini.dk</groupId>
+            <artifactId>dk-core</artifactId>
+            <version>${dangkang.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

@@ -77,7 +77,7 @@ public class ExcelUtil {
      * @param filePath 文件名称
      * @param hasHeader 表单中是否包含表头行
      * @param nullable 是否允许单元格为空，如果不允许，遇到空单元格将会抛出异常
-     * @param defaultEmptyValue 该值仅在参数nullable为false，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
+     * @param defaultEmptyValue 该值仅在参数nullable为true，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
      * @return 返回读取到的数据，key为excel文件中表单的名称，value为在该表单中读取到的数据
      */
     public static Map<String, List<?>> readExcelAsEntity(String filePath, boolean hasHeader, boolean nullable,
@@ -110,7 +110,7 @@ public class ExcelUtil {
      * @param filePath 文件名称
      * @param hasHeader 表单中是否包含表头行
      * @param nullable 是否允许单元格为空，如果不允许，遇到空单元格将会抛出异常
-     * @param defaultEmptyValue 该值仅在参数nullable为false，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
+     * @param defaultEmptyValue 该值仅在参数nullable为true，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
      * @param beanClass JavaBean类型
      * @param <E> JavaBean类型
      * @return 返回读取到的数据，如果文件中存在多个表单，且都有数据，则会将多个表单的数据合并后返回
@@ -145,7 +145,7 @@ public class ExcelUtil {
      * @param fileName 文件名称
      * @param input 数据流
      * @param nullable 是否允许单元格为空，如果不允许，遇到空单元格将会抛出异常
-     * @param defaultEmptyValue 该值仅在参数nullable为false，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
+     * @param defaultEmptyValue 该值仅在参数nullable为true，即允许单元格为空时有效，如果遇到空单元格，将使用该值记录
      * @return 读取出错时，可能抛出异常
      */
     public static String readExcelWithJson(String fileName, InputStream input, boolean nullable,

@@ -35,7 +35,7 @@ public enum ExpressionDependEnum {
     FUNCTION {
         @Override
         public Object getValue(String name) {
-            return VariousWaysManager.getCurrentImpl(name);
+            return VariousWaysManager.getCurrentImpl(name, null, null);
         }
     },
     /**

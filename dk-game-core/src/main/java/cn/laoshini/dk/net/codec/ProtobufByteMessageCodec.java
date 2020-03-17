@@ -2,15 +2,12 @@ package cn.laoshini.dk.net.codec;
 
 import java.util.Arrays;
 
-import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
 
 import cn.laoshini.dk.constant.GameConstant;
 import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.net.msg.BaseProtobufMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.ByteMessageUtil;
 import cn.laoshini.dk.util.LogUtil;
 
@@ -45,17 +42,5 @@ public class ProtobufByteMessageCodec implements IByteMessageCodec<BaseProtobufM
     @Override
     public byte[] encode(BaseProtobufMessage.Base base, GameSubject subject) {
         return ByteMessageUtil.protobufToBytes(base);
-    }
-
-    public byte[] encodeByRespMessage(RespMessage<Message> respMessage, GameSubject subject) {
-        BaseProtobufMessage.Base.Builder builder = BaseProtobufMessage.Base.newBuilder();
-        builder.setCmd(respMessage.getId());
-        builder.setCode(respMessage.getCode());
-        builder.setParams(respMessage.getParams());
-        if (respMessage.getData() != null) {
-            builder.setDetail(Any.pack(respMessage.getData()));
-        }
-
-        return encode(builder.build(), subject);
     }
 }

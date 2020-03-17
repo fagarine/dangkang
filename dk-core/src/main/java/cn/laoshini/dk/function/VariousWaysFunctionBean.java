@@ -1,5 +1,6 @@
 package cn.laoshini.dk.function;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,13 +13,14 @@ import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.util.LogUtil;
 import cn.laoshini.dk.util.ReflectUtil;
+import cn.laoshini.dk.util.StringUtil;
 
 /**
  * 多实现功能记录类（内存对象）
  *
  * @author fagarine
  */
-public class VariousWaysFunctionBean<FunctionType> {
+final class VariousWaysFunctionBean<FunctionType> {
 
     /**
      * 功能定义类，父类
@@ -50,7 +52,17 @@ public class VariousWaysFunctionBean<FunctionType> {
      */
     private Class<? extends FunctionType> currentImplClass;
 
-    public VariousWaysFunctionBean(Class<FunctionType> interfaceClass, String functionConfigurationKey) {
+    /**
+     * 配置项选择的实现key
+     */
+    private String configValue;
+
+    /**
+     * 记录当前默认实现是否已变更
+     */
+    private boolean currentImplChanged;
+
+    VariousWaysFunctionBean(Class<FunctionType> interfaceClass, String functionConfigurationKey) {
         this.interfaceClass = interfaceClass;
         this.functionConfigurationKey = functionConfigurationKey;
     }
@@ -64,9 +76,11 @@ public class VariousWaysFunctionBean<FunctionType> {
     void addImplement(String name, Class<? extends FunctionType> implClass) {
         implementedMap.compute(name.toUpperCase(), (k, oldValue) -> {
             if (oldValue != null && !oldValue.equals(implClass)) {
-                throw new BusinessException("function.name.duplicate",
-                        String.format("不同的实现方式注册了同一名称, key:%s, class1:%s, class2:%s", k, oldValue.getName(),
-                                implClass.getName()));
+                if (!oldValue.getName().equalsIgnoreCase(implClass.getName())) {
+                    // 实现key相同的，日志记录提醒
+                    LogUtil.error("不同的实现方式注册了同一实现key, key:[{}], class1:{}, class2:{}，前者将被后者覆盖", k, oldValue.getName(),
+                            implClass.getName());
+                }
             }
             return implClass;
         });
@@ -84,32 +98,38 @@ public class VariousWaysFunctionBean<FunctionType> {
         } else {
             this.currentImplName = implName.toUpperCase();
         }
-        currentImplClass = implementedMap.get(this.currentImplName);
+
+        Class<? extends FunctionType> originImpl = currentImplClass;
         String key = functionConfigurationKey;
         String className = interfaceClass.getName();
+        currentImplClass = implementedMap.get(this.currentImplName);
         if (currentImplClass == null) {
             this.currentImplAnnotation = null;
+
+            // 未找到对应实现类
+            if (implName != null) {
+                throw new BusinessException("function.impl.not.found",
+                        String.format("未找到[%s]对应功能类[%s]的key为[%s]的实现类", key, className, implName));
+            }
+
             if (implementedMap.isEmpty()) {
                 // 如果没有找到任何实现类，在不允许实现类缺失的情况下，抛出异常
                 if (!vacant) {
                     throw new BusinessException("function.impl.vacant",
                             String.format("未找到[%s]对应功能类[%s]的任何实现类", key, className));
                 } else {
-                    LogUtil.info("未找到[{}]对应功能类[{}]的任何实现类，当前为允许实现类缺失模式，不抛出异常", key, className);
-                    return;
+                    LogUtil.error("未找到[{}]对应功能类[{}]的任何实现类，当前为允许实现类缺失模式，不抛出异常", key, className);
                 }
+            } else {
+                // 如果用户没有配置选择哪个实现，又找不到缺省实现方式，则随机选择一个实现对象
+                this.currentImplName = new ArrayList<>(implementedMap.keySet()).get(0);
+                this.currentImplClass = implementedMap.get(this.currentImplName);
+                this.currentImplAnnotation = currentImplClass.getAnnotation(FunctionVariousWays.class);
             }
-
-            // 以下是有实现类，但是选择错误的处理
-            if (Constants.DEFAULT_PROPERTY_NAME.equals(this.currentImplName)) {
-                throw new BusinessException("function.no.default.impl",
-                        String.format("未找到[%s]对应功能类[%s]的默认实现类", key, className));
-            }
-            throw new BusinessException("function.impl.not.found",
-                    String.format("未找到[%s]对应功能类[%s]的key为[%s]的实现类", key, className, implName));
         } else {
             this.currentImplAnnotation = currentImplClass.getAnnotation(FunctionVariousWays.class);
         }
+        currentImplChanged = originImpl != currentImplClass;
     }
 
     /**
@@ -118,7 +138,7 @@ public class VariousWaysFunctionBean<FunctionType> {
      * @param initArgs 如果不是单例模式，传入对象初始化参数
      * @return 该方法不会返回null，但可能抛出异常
      */
-    public FunctionType getCurrentImpl(Object... initArgs) {
+    FunctionType getCurrentImpl(Object... initArgs) {
         if (currentIsSingleton()) {
             return SpringContextHolder.getBean(currentImplClass);
         }
@@ -141,7 +161,7 @@ public class VariousWaysFunctionBean<FunctionType> {
      * @param argTypes 初始化参数的类型
      * @return 该方法不会返回null，但可能抛出异常
      */
-    public FunctionType getCurrentImpl(Object[] initArgs, Class<?>[] argTypes) {
+    FunctionType getCurrentImpl(Object[] initArgs, Class<?>[] argTypes) {
         if (currentIsSingleton()) {
             return SpringContextHolder.getBean(currentImplClass);
         }
@@ -149,7 +169,7 @@ public class VariousWaysFunctionBean<FunctionType> {
         FunctionType impl = ReflectUtil.newInstance(currentImplClass, initArgs, argTypes);
         if (impl == null) {
             throw new BusinessException("function.impl.create.fail",
-                    String.format("类[%s]的实例创建失败，参数:%s", currentImplClass, Arrays.toString(initArgs)));
+                    String.format("类[%s]的实例创建失败，参数:%s", currentImplClass.getName(), Arrays.toString(initArgs)));
         }
         return impl;
     }
@@ -161,25 +181,56 @@ public class VariousWaysFunctionBean<FunctionType> {
      * @param initArgs 如果不是单例模式，传入对象初始化参数
      * @return 该方法不会返回null，但可能抛出异常
      */
-    public FunctionType getImplByKey(String key, Object... initArgs) {
+    FunctionType getImplByKey(String key, Object[] initArgs, Class[] types) {
         Class<? extends FunctionType> clazz = implementedMap.get(key.toUpperCase());
         if (clazz == null) {
             throw new BusinessException("function.impl.not.found",
                     String.format("未找到[%s]对应功能的key为[%s]的实现类", functionConfigurationKey, key));
         }
 
+        return getFunctionImpl(clazz, false, initArgs, types);
+    }
+
+    private FunctionType getFunctionImpl(Class<? extends FunctionType> clazz, boolean nullable, Object[] initArgs,
+            Class[] types) {
         FunctionVariousWays annotation = clazz.getAnnotation(FunctionVariousWays.class);
         if (annotation.singleton()) {
             String beanName = StringUtils.uncapitalize(clazz.getSimpleName());
             return SpringContextHolder.getBean(beanName);
+        } else {
+            FunctionType impl = ReflectUtil.newInstanceByType(clazz, initArgs, types);
+            if (impl == null && !nullable) {
+                // 实例创建失败，向上抛出异常
+                throw new BusinessException("function.impl.create.fail",
+                        String.format("类[%s]的实例创建失败，参数:%s", clazz.getName(), Arrays.toString(initArgs)));
+            }
+            return impl;
+        }
+    }
+
+    FunctionType getImplByAnnotation(String key, boolean nullable, Object[] initArgs, Class[] types) {
+        String k = null;
+        Class<? extends FunctionType> clazz = currentImplClass;
+        if (StringUtil.isNotEmptyString(key)) {
+            k = key.toUpperCase();
+            clazz = implementedMap.get(k);
         }
 
-        FunctionType impl = ReflectUtil.newInstance(clazz, initArgs);
-        if (impl == null) {
-            throw new BusinessException("function.impl.create.fail",
-                    String.format("类[%s]的实例创建失败，参数:%s", currentImplClass, Arrays.toString(initArgs)));
+        if (clazz == null) {
+            // 如果用户没有设置key，该功能又不存在缺省实现，则使用当前选择的实现类
+            if (k == null) {
+                // 如果当前默认实现类为null，返回null
+                if (currentImplClass == null) {
+                    return null;
+                }
+                clazz = currentImplClass;
+            } else {
+                // 找不到用户指定的实现，返回null
+                return null;
+            }
         }
-        return impl;
+
+        return getFunctionImpl(clazz, nullable, initArgs, types);
     }
 
     /**
@@ -187,7 +238,7 @@ public class VariousWaysFunctionBean<FunctionType> {
      *
      * @return 仅在当前实现不为空且为单例时，返回true
      */
-    public boolean currentIsSingleton() {
+    boolean currentIsSingleton() {
         return this.currentImplAnnotation != null && this.currentImplAnnotation.singleton();
     }
 
@@ -197,7 +248,7 @@ public class VariousWaysFunctionBean<FunctionType> {
      * @param key 实现类的key
      * @return 返回该功能是否已无可用的实现类
      */
-    public boolean unregisterImpl(String key) {
+    boolean unregisterImpl(String key) {
         implementedMap.remove(key);
         return implementedMap.isEmpty();
     }
@@ -208,7 +259,7 @@ public class VariousWaysFunctionBean<FunctionType> {
      * @param key 实现类的key
      * @return 传入的key是否是当前选择实现类的key
      */
-    public boolean isCurrentKey(String key) {
+    boolean isCurrentKey(String key) {
         return currentImplName != null && currentImplName.equalsIgnoreCase(key);
     }
 
@@ -217,35 +268,43 @@ public class VariousWaysFunctionBean<FunctionType> {
      *
      * @return 返回该功能是否已无可用的实现类
      */
-    public boolean isEmptyImpl() {
+    boolean isEmptyImpl() {
         return implementedMap.isEmpty();
     }
 
-    public String getInterfaceName() {
+    String getInterfaceName() {
         return getInterfaceClass().getName();
     }
 
-    public Class<FunctionType> getInterfaceClass() {
+    Class<FunctionType> getInterfaceClass() {
         return interfaceClass;
     }
 
-    public void setInterfaceClass(Class<FunctionType> interfaceClass) {
+    void setInterfaceClass(Class<FunctionType> interfaceClass) {
         this.interfaceClass = interfaceClass;
     }
 
-    public String getFunctionConfigurationKey() {
+    String getFunctionConfigurationKey() {
         return functionConfigurationKey;
     }
 
-    public void setFunctionConfigurationKey(String functionConfigurationKey) {
+    void setFunctionConfigurationKey(String functionConfigurationKey) {
         this.functionConfigurationKey = functionConfigurationKey;
     }
 
-    public Map<String, Class<? extends FunctionType>> getImplementedMap() {
+    Map<String, Class<? extends FunctionType>> getImplementedMap() {
         return implementedMap;
     }
 
-    public String getCurrentImplName() {
+    String getCurrentImplName() {
         return currentImplName;
+    }
+
+    boolean isCurrentImplChanged() {
+        return currentImplChanged;
+    }
+
+    void setCurrentImplChanged(boolean currentImplChanged) {
+        this.currentImplChanged = currentImplChanged;
     }
 }

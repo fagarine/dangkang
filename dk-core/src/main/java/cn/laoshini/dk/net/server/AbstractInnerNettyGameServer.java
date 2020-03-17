@@ -1,6 +1,7 @@
 package cn.laoshini.dk.net.server;
 
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelDuplexHandler;
@@ -88,9 +89,27 @@ public abstract class AbstractInnerNettyGameServer<S, M> extends AbstractInnerGa
     }
 
     protected void dispatchMessage(S session, M msg) {
+        // 如果服务器已暂停对外提供服务，但是消息还是进来了，说明该服务器可能需要处理GM服务器消息，执行相关检查
+        if (pause.get()) {
+            // 游戏服和GM服共享端口的，只允许通过GM服的消息
+            if (getGameServerRegister().isSharingPortWithGm()) {
+                Predicate<M> filter = getGameServerRegister().gmRegister().getConsoleMessageFilter();
+                if (!filter.test(msg)) {
+                    sendPauseMessage(session);
+                    return;
+                }
+            } else if (!getGameServerRegister().isGmServer()) {
+                // 不是GM服务器，又没有与GM服务器共享端口，不允许通过
+                sendPauseMessage(session);
+                return;
+            }
+        }
+
+        // 消息拦截器相关逻辑
         if (msgShouldIntercept(session, msg)) {
             return;
         }
+        // 执行真正的消息转发
         getGameServerRegister().messageDispatcher().dispatch(session, msg);
     }
 

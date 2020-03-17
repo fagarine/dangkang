@@ -4,8 +4,6 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,7 +103,7 @@ public class ReflectHelper {
 
     private static Predicate<Class<?>> springClassExclusiveFilter(Collection<Class<?>> exclusive) {
         return (clazz) -> (CollectionUtil.isEmpty(exclusive) || !exclusive.contains(clazz))
-                && isSpringAnnotationPresent(clazz);
+                          && isSpringAnnotationPresent(clazz);
     }
 
     private static Predicate<Class<?>> springClassFilter() {
@@ -271,13 +269,7 @@ public class ReflectHelper {
      * @return 该方法可能返回null
      */
     public static Class<?> getMessageHandlerGenericType(Class<? extends IMessageHandler> handlerClass) {
-        Type type = ReflectUtil.getAssignedInterfaceGenericType(handlerClass, IMessageHandler.class);
-        if (type instanceof Class) {
-            return (Class<?>) type;
-        } else if (type instanceof ParameterizedType) {
-            return (Class<?>) ((ParameterizedType) type).getRawType();
-        }
-        return null;
+        return ReflectUtil.getSuperClassGenericClass(handlerClass, IMessageHandler.class);
     }
 
     public static List<MethodDescriptor> getMethods(Class<?> clazz) {

@@ -1,6 +1,7 @@
 package cn.laoshini.dk.manager;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -23,7 +24,7 @@ public enum SpringBeanManager {
      */
     INSTANCE;
 
-    private final Set<String> springBeanNameCache = new LinkedHashSet<>();
+    private final Map<String, Class<?>> springBeanNameCache = new LinkedHashMap<>();
 
     private final Map<String, Class<?>> springBeanMap = new ConcurrentHashMap<>();
 
@@ -43,27 +44,36 @@ public enum SpringBeanManager {
     }
 
     public static void prepareUnregister(ClassLoader classLoader) {
+        INSTANCE.springBeanNameCache.clear();
+
+        INSTANCE.moduleClassMap.remove(classLoader);
         Collection<String> beanNames = INSTANCE.moduleSpringBeanMap.remove(classLoader);
         if (CollectionUtil.isNotEmpty(beanNames)) {
             for (String beanName : beanNames) {
                 if (INSTANCE.springBeanMap.containsKey(beanName)) {
-                    INSTANCE.springBeanNameCache.add(beanName);
-                    INSTANCE.springBeanMap.remove(beanName);
+                    INSTANCE.springBeanNameCache.put(beanName, INSTANCE.springBeanMap.remove(beanName));
                 }
             }
+            beanNames.clear();
         }
     }
 
+    public static void cancelPrepareUnregister() {
+        for (Map.Entry<String, Class<?>> entry : INSTANCE.springBeanNameCache.entrySet()) {
+            registerBean(entry.getKey(), entry.getValue());
+        }
+        INSTANCE.springBeanNameCache.clear();
+    }
+
     public static void unregister() {
-        for (String beanName : INSTANCE.springBeanNameCache) {
-            // 在热更新后模块已不存在的Spring托管对象，认定为无效对象，从容器移除
+        for (String beanName : INSTANCE.springBeanNameCache.keySet()) {
+            // 在热更新后模块已不存在的Spring托管对象，认定为无效对象，从容器移除（注销操作在新模块注册操作之后，所以这里比较的是新模块加载后的结果）
             if (!INSTANCE.springBeanMap.containsKey(beanName)) {
                 SpringUtils.removeBean(beanName);
             }
         }
 
         INSTANCE.springBeanNameCache.clear();
-        INSTANCE.moduleClassMap.clear();
     }
 
     public static Collection<String> getBeanNames() {

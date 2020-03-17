@@ -1,10 +1,12 @@
 package cn.laoshini.dk.module.registry;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.jar.JarFile;
 
 import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.dao.IEntityClassManager;
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 import cn.laoshini.dk.register.IClassScanner;
 import cn.laoshini.dk.register.IEntityRegister;
@@ -15,21 +17,45 @@ import cn.laoshini.dk.register.Registers;
  *
  * @author fagarine
  */
-class ModuleEntityClassRegistry extends AbstractModuleRegistry {
+class ModuleEntityClassRegistry extends AbstractRecoverableModuleRegistry {
+
+    @FunctionDependent
+    private IEntityClassManager entityClassManager;
+    private Map<IEntityRegister, List<Class<?>>> entityClassesMap = new LinkedHashMap<>();
 
     ModuleEntityClassRegistry(ModuleLoaderContext context) {
         super(context);
     }
 
-    @FunctionDependent
-    private IEntityClassManager entityClassManager;
+    @Override
+    public void prepareRegister(JarFile jarFile) {
+        super.prepareRegister(jarFile);
+
+        for (IEntityRegister entityRegister : Registers.getEntityRegisters()) {
+            IClassScanner<Class<?>> scanner = entityRegister.scanner();
+            try {
+                scanner.setJarFile(jarFile);
+                entityClassesMap.put(entityRegister, scanner.findClasses(getModuleClassLoader()));
+            } finally {
+                scanner.setJarFile(null);
+            }
+        }
+    }
+
+    @Override
+    protected void cancelPrepareRegister() {
+        super.cancelPrepareRegister();
+        entityClassesMap.clear();
+    }
 
     @Override
     public void register(JarFile jarFile) {
-        for (IEntityRegister entityRegister : Registers.getEntityRegisters()) {
-            IClassScanner<Class<?>> scanner = entityRegister.scanner();
-            scanner.setJarFile(jarFile);
-            entityRegister.action(getModuleClassLoader());
+        if (!entityClassesMap.isEmpty()) {
+            for (Map.Entry<IEntityRegister, List<Class<?>>> entry : entityClassesMap.entrySet()) {
+                entry.getKey().registerEntityClasses(entry.getValue());
+                entry.getValue().clear();
+            }
+            entityClassesMap.clear();
         }
     }
 
@@ -39,8 +65,20 @@ class ModuleEntityClassRegistry extends AbstractModuleRegistry {
     }
 
     @Override
+    protected void cancelPrepareUnregister() {
+        entityClassManager.cancelPrepareUnregister();
+    }
+
+    @Override
     public void unregister0() {
         entityClassManager.unregister();
     }
 
+    @Override
+    protected void cleanUp() {
+        super.cleanUp();
+
+        entityClassesMap.clear();
+        entityClassesMap = null;
+    }
 }

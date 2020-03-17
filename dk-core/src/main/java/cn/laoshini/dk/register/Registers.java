@@ -10,8 +10,8 @@ import java.util.function.Function;
 import cn.laoshini.dk.annotation.MessageHandle;
 import cn.laoshini.dk.dao.TableMapping;
 import cn.laoshini.dk.domain.common.Tuple;
+import cn.laoshini.dk.domain.msg.IMessage;
 import cn.laoshini.dk.net.handler.IMessageHandler;
-import cn.laoshini.dk.net.msg.IMessage;
 import cn.laoshini.dk.util.ReflectHelper;
 import cn.laoshini.dk.util.StringUtil;
 
@@ -19,18 +19,6 @@ import cn.laoshini.dk.util.StringUtil;
  * @author fagarine
  */
 public class Registers {
-    private Registers() {
-    }
-
-    private static final Set<IEntityRegister> ENTITY_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
-
-    private static final Set<IMessageRegister> MESSAGE_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
-
-    private static final Set<IMessageDtoRegister> DTO_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
-
-    private static final Set<IMessageHandlerRegister> HANDLER_REGISTERS = Collections
-            .synchronizedSet(new LinkedHashSet<>());
-
     public static final IMessageDtoRegister DK_CUSTOM_DTO_REGISTER = () -> ClassScanners.<Tuple<Integer, Class<?>>>newAnnotationAndParentScanner(
             MessageHandle.class, IMessageHandler.class).setConverter(clazz -> {
         Class<? extends IMessageHandler> handlerClass = (Class<? extends IMessageHandler>) clazz;
@@ -41,15 +29,12 @@ public class Registers {
         }
         return null;
     });
-
     public static final IMessageRegister DK_CUSTOM_MESSAGE_REGISTER = new MessageRegisterAdapter()
             .setScanner(ClassScanners.newParentScanner(IMessage.class, false, true))
             .setIdReader(ClassIdReader.methodReader(IMessage.ID_METHOD));
-
     public static final IMessageHandlerRegister DK_HANDLER_REGISTER = new MessageHandlerRegisterAdaptor()
             .setScanner(ClassScanners.newAnnotationAndParentScanner(MessageHandle.class, IMessageHandler.class))
             .setIdReader(ClassIdReader.annotationReader(MessageHandle.class, MessageHandle.ID_METHOD)).singleton();
-
     public static final IEntityRegister DK_ENTITY_REGISTER = new EntityRegisterAdaptor()
             .setScanner(ClassScanners.newAnnotationScanner(TableMapping.class)).setTableNameReader(clazz -> {
                 TableMapping tableMapping = clazz.getAnnotation(TableMapping.class);
@@ -58,6 +43,14 @@ public class Registers {
                 }
                 return clazz.getSimpleName();
             });
+    private static final Set<IEntityRegister> ENTITY_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
+    private static final Set<IMessageRegister> MESSAGE_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
+    private static final Set<IMessageDtoRegister> DTO_REGISTERS = Collections.synchronizedSet(new LinkedHashSet<>());
+    private static final Set<IMessageHandlerRegister> HANDLER_REGISTERS = Collections
+            .synchronizedSet(new LinkedHashSet<>());
+
+    private Registers() {
+    }
 
     public static void addEntityRegister(IEntityRegister entityRegister) {
         if (entityRegister != null) {
@@ -178,19 +171,19 @@ public class Registers {
     }
 
     public static <S, M> GameServerRegisterAdaptor<S, M> newTcpGameServerRegister() {
-        return (GameServerRegisterAdaptor<S, M>) newGameServerRegisterAdaptor().tcp();
+        return (GameServerRegisterAdaptor<S, M>) newGameServerRegisterAdaptor();
     }
 
     public static <S, M> GameServerRegisterAdaptor<S, M> newHttpGameServerRegister() {
         return (GameServerRegisterAdaptor<S, M>) newGameServerRegisterAdaptor().http();
     }
 
-    public static <S, M> GameServerRegisterAdaptor<S, M> newUdpGameServerRegister() {
-        return (GameServerRegisterAdaptor<S, M>) newGameServerRegisterAdaptor().udp();
+    public static <S, M> UdpGameServerRegister<S, M> newUdpGameServerRegister() {
+        return new UdpGameServerRegister<>();
     }
 
-    public static <S, M> GameServerRegisterAdaptor<S, M> newWebsocketGameServerRegister() {
-        return (GameServerRegisterAdaptor<S, M>) newGameServerRegisterAdaptor().websocket();
+    public static <S, M> WebsocketGameServerRegister<S, M> newWebsocketGameServerRegister() {
+        return new WebsocketGameServerRegister<>();
     }
 
     public static IEntityRegister dangKangEntityRegister() {

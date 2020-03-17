@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
+import cn.laoshini.dk.constant.ServerType;
 import cn.laoshini.dk.net.codec.INettyMessageDecoder;
 import cn.laoshini.dk.net.codec.INettyMessageEncoder;
 import cn.laoshini.dk.net.connect.IConnectClosedHandler;
@@ -13,14 +14,22 @@ import cn.laoshini.dk.net.msg.IMessageDispatcher;
 import cn.laoshini.dk.net.msg.IMessageInterceptor;
 import cn.laoshini.dk.net.session.IMessageSender;
 import cn.laoshini.dk.net.session.ISessionCreator;
-import cn.laoshini.dk.server.AbstractGameServer;
 
 /**
- * @param <S> 应用内会话类型，对应一个客户端连接
- * @param <M> 消息类型
+ * 游戏服务器注册器
+ *
+ * @param <S> Session的首字母，表示应用内会话类型，对应一个客户端连接
+ * @param <M> Message的首字母，表示消息类型
  * @author fagarine
  */
 public interface IGameServerRegister<S, M> extends IFunctionRegister {
+
+    /**
+     * 获取游戏id
+     *
+     * @return 一个游戏一个id
+     */
+    int gameId();
 
     /**
      * 获取游戏名称
@@ -28,6 +37,20 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
      * @return 进程内唯一
      */
     String gameName();
+
+    /**
+     * 获取游戏服id
+     *
+     * @return 所有游戏服唯一
+     */
+    int serverId();
+
+    /**
+     * 获取游戏服名称
+     *
+     * @return 应尽量保证所有游戏服唯一
+     */
+    String serverName();
 
     /**
      * 获取游戏服务器监听端口
@@ -44,9 +67,45 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
     GameServerProtocolEnum protocol();
 
     /**
+     * 是否采用 TCP 协议通信
+     *
+     * @return 返回判断结果
+     */
+    default boolean isTcp() {
+        return GameServerProtocolEnum.TCP.equals(protocol());
+    }
+
+    /**
+     * 是否采用 HTTP 协议通信
+     *
+     * @return 返回判断结果
+     */
+    default boolean isHttp() {
+        return GameServerProtocolEnum.HTTP.equals(protocol());
+    }
+
+    /**
+     * 是否采用 WebSocket 协议通信
+     *
+     * @return 返回判断结果
+     */
+    default boolean isWebsocket() {
+        return GameServerProtocolEnum.WEBSOCKET.equals(protocol());
+    }
+
+    /**
+     * 是否采用 UDP 协议通信
+     *
+     * @return 返回判断结果
+     */
+    default boolean isUdp() {
+        return GameServerProtocolEnum.UDP.equals(protocol());
+    }
+
+    /**
      * 获取客户端连接最大空闲时间，超过该时间没有响应的连接将被断开
      *
-     * @return 如果返回的值不大于0，表示不使用空闲时间监控，也不会主动断开空闲连接
+     * @return 如果返回的值不大于0，表示不对客户端连接使用空闲状态监控，也不会主动断开空闲连接
      */
     int idleTime();
 
@@ -56,6 +115,13 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
      * @return 仅当使用TCP通信时有效
      */
     boolean isTcpNoDelay();
+
+    /**
+     * 获取服务器类型
+     *
+     * @return 该方法不允许返回null
+     */
+    ServerType serverType();
 
     /**
      * 返回所有游戏数据加载器
@@ -83,14 +149,14 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
     /**
      * 返回一个消息编码器
      *
-     * @return 仅支持编码为二进制消息，不允许返回null
+     * @return 仅支持编码为二进制消息，部分协议如Http、Websocket允许为null
      */
     INettyMessageEncoder<M> encoder();
 
     /**
-     * 获取客户端连接建立成功时的行为
+     * 获取客户端连接建立成功时的行为，其主要目的是将会话对象Session与游戏内的玩家主体对象关联，以便于消息到达后快速关联到玩家主体。
      *
-     * @return 返回一个连接建立后的事件处理对象，该方法不允许返回null
+     * @return 返回一个连接建立后的事件处理对象，不允许返回null
      */
     IConnectOpenedHandler<S> connectOpenedOperation();
 
@@ -136,14 +202,35 @@ public interface IGameServerRegister<S, M> extends IFunctionRegister {
     IMessageSender<S, M> messageSender();
 
     /**
+     * 返回游戏服务器启动成功后的行为
+     *
+     * @return 返回服务器启动成功后，需要立即执行的逻辑，该方法如果返回null，表示没有需要立即执行的逻辑
+     */
+    IGameServerStartedHandler serverStartedHandler();
+
+    /**
+     * 当服务器停止对外服务时，返回给客户端的消息
+     * <p>
+     * 注意：该方法并非必须，仅在你想要在暂停服务器，又不想玩家退出游戏，返回给玩家提示信息时，才需要考虑使用
+     * </p>
+     * 这种方式并不推荐使用，服务器暂停时，将玩家留在游戏中，可能发生难以预料的结果
+     *
+     * @return 返回消息，如果该方法返回null，表示不返回任何消息给客户端
+     */
+    default Object pauseResponseMessage() {
+        return null;
+    }
+
+    /**
      * 启动服务器线程
      *
      * @return 返回当前对象，用于fluent风格编程
      */
-    AbstractGameServer startServer();
+    IGameServerRegister<S, M> startServer();
 
     @Override
     default void action(ClassLoader classLoader) {
+        startServer();
     }
 
     @Override

@@ -59,7 +59,9 @@ public enum MessageHolder {
      * @param classLoader 类加载器
      */
     public static void prepareUnregisterMessages(ClassLoader classLoader) {
-        Collection<Integer> messageIds = MESSAGE_ID_MAP.get(classLoader);
+        MESSAGE_CACHE.clear();
+
+        Collection<Integer> messageIds = MESSAGE_ID_MAP.remove(classLoader);
         if (CollectionUtil.isNotEmpty(messageIds)) {
             for (Integer messageId : messageIds) {
                 MESSAGE_CACHE.put(messageId, MESSAGES.remove(messageId));
@@ -67,18 +69,16 @@ public enum MessageHolder {
         }
     }
 
+    public static void cancelPrepareUnregister() {
+        registerAllMessage(MESSAGE_CACHE);
+        MESSAGE_CACHE.clear();
+    }
+
     /**
      * 清除指定类加载器加载的消息类
-     *
-     * @param classLoader 类加载器
      */
-    public static void unregisterMessages(ClassLoader classLoader) {
-        Collection<Integer> messageIds = MESSAGE_ID_MAP.remove(classLoader);
-        if (CollectionUtil.isNotEmpty(messageIds)) {
-            for (Integer messageId : messageIds) {
-                MESSAGE_CACHE.remove(messageId);
-            }
-        }
+    public static void unregisterMessages() {
+        MESSAGE_CACHE.clear();
     }
 
     /**

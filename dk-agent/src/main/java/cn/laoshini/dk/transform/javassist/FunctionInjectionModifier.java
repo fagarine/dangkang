@@ -22,7 +22,7 @@ public class FunctionInjectionModifier extends AbstractJavassistModifier {
         for (CtField ctField : ctClass.getDeclaredFields()) {
             if (fieldHaveAssignedAnnotation(ctField, FUNCTION_ANNOTATION)) {
                 if (Modifier.isStatic(ctField.getModifiers())) {
-                    staticCode.append(functionInjectionCode(ctField.getName()));
+                    staticCode.append(functionInjectionCode(ctField.getName(), ctClass));
                     System.out.println(String.format("准备向类 %s 的静态变量 %s 注入可配置功能", ctClass.getName(), ctField.getName()));
                 } else {
                     code.append(functionInjectionCode(ctField.getName()));
@@ -42,7 +42,12 @@ public class FunctionInjectionModifier extends AbstractJavassistModifier {
 
     private String functionInjectionCode(String filedName) {
         return "cn.laoshini.dk.transform.injection.ConfigurableFunctionInjectorProxy.getInstance().injectField(this, \""
-                + filedName + "\");";
+               + filedName + "\");";
+    }
+
+    private String functionInjectionCode(String filedName, CtClass ctClass) {
+        return "cn.laoshini.dk.transform.injection.ConfigurableFunctionInjectorProxy.getInstance().injectField("
+               + ctClass.getName() + ".class, \"" + filedName + "\");";
     }
 
 }

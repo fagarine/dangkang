@@ -5,7 +5,7 @@ import java.util.Map;
 
 import cn.laoshini.dk.constant.Constants;
 import cn.laoshini.dk.constant.QueryConditionKeyEnum;
-import cn.laoshini.dk.dao.query.AbstractQueryCondition;
+import cn.laoshini.dk.domain.query.AbstractQueryCondition;
 import cn.laoshini.dk.util.StringUtil;
 
 /**

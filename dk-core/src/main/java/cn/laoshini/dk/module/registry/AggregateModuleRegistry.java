@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarFile;
 
-import cn.laoshini.dk.module.AbstractModuleRegistry;
 import cn.laoshini.dk.module.loader.ModuleLoaderContext;
 
 /**
@@ -12,11 +11,11 @@ import cn.laoshini.dk.module.loader.ModuleLoaderContext;
  *
  * @author fagarine
  */
-public final class AggregateModuleRegistry extends AbstractModuleRegistry {
+public final class AggregateModuleRegistry extends AbstractRecoverableModuleRegistry {
+    private List<AbstractRecoverableModuleRegistry> innerModuleRegistries;
+
     private AggregateModuleRegistry() {
     }
-
-    private List<AbstractModuleRegistry> innerModuleRegistries;
 
     public static AggregateModuleRegistry newInstance(ModuleLoaderContext moduleLoaderContext,
             AggregateModuleRegistry oldRegistry) {
@@ -26,38 +25,54 @@ public final class AggregateModuleRegistry extends AbstractModuleRegistry {
         return registry;
     }
 
-    private static List<AbstractModuleRegistry> createInnerModuleRegistries(ModuleLoaderContext moduleLoaderContext) {
-        List<AbstractModuleRegistry> registries = new ArrayList<>(8);
+    private static List<AbstractRecoverableModuleRegistry> createInnerModuleRegistries(
+            ModuleLoaderContext moduleLoaderContext) {
+        List<AbstractRecoverableModuleRegistry> registries = new ArrayList<>(8);
 
         registries.add(new ModuleSpringBeanRegistry(moduleLoaderContext));
         registries.add(new ModuleConfigurableFunctionRegistry(moduleLoaderContext));
         registries.add(new ModuleResourceHolderRegistry(moduleLoaderContext));
-        registries.add(new ModuleMessageHandlerRegistry(moduleLoaderContext));
         registries.add(new ModuleMessageRegistry(moduleLoaderContext));
+        registries.add(new ModuleMessageHandlerRegistry(moduleLoaderContext));
         registries.add(new ModuleEntityClassRegistry(moduleLoaderContext));
 
         return registries;
     }
 
     @Override
-    public void register(JarFile moduleJarFile) {
-        for (AbstractModuleRegistry moduleRegistry : innerModuleRegistries) {
-            moduleRegistry.register(moduleJarFile);
+    public void prepareRegister(JarFile moduleJarFile) {
+        for (AbstractRecoverableModuleRegistry moduleRegistry : innerModuleRegistries) {
+            moduleRegistry.prepareRegister(moduleJarFile);
+            moduleRegistry.toPrepareRegister();
         }
+        toPrepareRegister();
+    }
+
+    @Override
+    public void register(JarFile moduleJarFile) {
+        for (AbstractRecoverableModuleRegistry moduleRegistry : innerModuleRegistries) {
+            moduleRegistry.register(moduleJarFile);
+            moduleRegistry.toRegistered();
+        }
+        toRegistered();
     }
 
     @Override
     public void prepareUnregister() {
-        for (AbstractModuleRegistry moduleRegistry : innerModuleRegistries) {
+        for (AbstractRecoverableModuleRegistry moduleRegistry : innerModuleRegistries) {
             moduleRegistry.prepareUnregister();
+            moduleRegistry.toPrepareUnregister();
         }
+        toPrepareUnregister();
     }
 
     @Override
     public void unregister0() {
-        for (AbstractModuleRegistry moduleRegistry : innerModuleRegistries) {
+        for (AbstractRecoverableModuleRegistry moduleRegistry : innerModuleRegistries) {
             moduleRegistry.unregister();
+            moduleRegistry.toUnregistered();
         }
+        toUnregistered();
     }
 
     @Override
@@ -66,5 +81,12 @@ public final class AggregateModuleRegistry extends AbstractModuleRegistry {
 
         innerModuleRegistries.clear();
         innerModuleRegistries = null;
+    }
+
+    @Override
+    public void rollback() {
+        for (AbstractRecoverableModuleRegistry moduleRegistry : innerModuleRegistries) {
+            moduleRegistry.rollback();
+        }
     }
 }

@@ -31,8 +31,8 @@
  *         }
  *
  *         // 方式3：手动获取指定实现
- *         public IDefaultDao getCurrentDefaultDao() {
- *             return VariousWaysManager.getFunctionImplByKey(IDefaultDao.class, "implKey");
+ *         public IDefaultDao getDefaultDaoByKey(String implKey) {
+ *             return VariousWaysManager.getFunctionImplByKey(IDefaultDao.class, implKey);
  *         }
  *     }
  * }</pre>

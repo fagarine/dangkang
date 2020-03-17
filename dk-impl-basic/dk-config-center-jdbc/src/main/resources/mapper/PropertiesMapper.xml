@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cn.laoshini.dk.config.center.mapper.PropertiesMapper">
+    <select id="selectAllLabelByApplication" resultType="String">
+        SELECT DISTINCT `label`
+        FROM `properties`
+        WHERE application = #{application}
+    </select>
+
+    <select id="selectAllProperties" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+    </select>
+
+    <select id="selectByApplicationAndLabel" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `label` = #{label}
+    </select>
+
+    <select id="selectByApplicationAndProfile" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+    </select>
+
+    <select id="selectByConfigSource" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+          AND `label` = #{label}
+    </select>
+
+    <select id="selectPropertyMapBySource" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+          AND `label` = #{label}
+    </select>
+
+    <select id="selectBatchPropertySourceByProfiles" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `label` = #{label}
+          AND `profile` IN (#{profiles})
+          AND `key` IN (#{keys})
+    </select>
+
+    <select id="selectBatchPropertySourceByLabels" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+          AND `label` IN (#{labels})
+          AND `key` IN (#{keys})
+    </select>
+
+    <select id="selectBatchSourceByProfile" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+          AND `key` IN (#{keys})
+    </select>
+
+    <select id="selectBatchSourceByLabel" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE application = #{application}
+          AND `label` = #{label}
+          AND `key` IN (#{keys})
+    </select>
+
+    <select id="selectPropertiesById" resultType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        SELECT id,
+               `key`,
+               `value`,
+               `application`,
+               `profile`,
+               `label`
+        FROM `properties`
+        WHERE id = #{id}
+    </select>
+
+    <sql id="column_no_id">
+        `key`,`value`,`application`,`profile`,`label`
+    </sql>
+
+    <insert id="insert" parameterType="cn.laoshini.dk.config.center.entity.ConfigProperty" useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO `properties`(<include refid="column_no_id"/>)
+        VALUES (#{key},#{value},#{application},#{profile},#{label})
+    </insert>
+
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into `properties` (<include refid="column_no_id"/>)
+        values
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+            #{item.key},
+            #{item.value},
+            #{item.application},
+            #{item.profile},
+            #{item.label}
+            )
+        </foreach>
+    </insert>
+
+    <update id="updateFullProperty" parameterType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        UPDATE `properties`
+        SET `key`=#{key},
+            `value`=#{value},
+            `application`=#{application},
+            `profile`=#{profile},
+            `label`=#{label}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePropertyValue" parameterType="cn.laoshini.dk.config.center.entity.ConfigProperty">
+        UPDATE `properties`
+        SET `value`=#{value}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE
+        FROM `properties`
+        WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteBySource">
+        DELETE
+        FROM `properties`
+        WHERE application = #{application}
+          AND `profile` = #{profile}
+          AND `label` = #{label}
+    </delete>
+
+</mapper>

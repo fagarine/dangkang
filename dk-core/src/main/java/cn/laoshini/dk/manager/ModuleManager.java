@@ -3,17 +3,19 @@ package cn.laoshini.dk.manager;
 import java.io.File;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cn.laoshini.dk.annotation.ResourceHolder;
-import cn.laoshini.dk.autoconfigure.DangKangBasicProperties;
 import cn.laoshini.dk.common.SpringContextHolder;
 import cn.laoshini.dk.constant.Constants;
+import cn.laoshini.dk.domain.dto.ModuleInfoDTO;
 import cn.laoshini.dk.exception.BusinessException;
-import cn.laoshini.dk.module.BusinessPause;
+import cn.laoshini.dk.function.VariousWaysManager;
 import cn.laoshini.dk.module.loader.ModuleLoader;
+import cn.laoshini.dk.server.GameServers;
 import cn.laoshini.dk.util.ClassUtil;
 import cn.laoshini.dk.util.LogUtil;
 
@@ -41,14 +43,17 @@ public enum ModuleManager {
      */
     private Map<String, ModuleLoader> moduleNameMap = new ConcurrentHashMap<>();
 
+    private boolean loaded;
+
     /**
      * 初始化模块系统
      */
     public static void initModuleSystem() {
-
         initLoaderContext();
 
         loadModules();
+
+        INSTANCE.loaded = true;
     }
 
     private static void initLoaderContext() {
@@ -65,6 +70,58 @@ public enum ModuleManager {
      * 加载（重加载）模块文件
      */
     public static void loadModules() {
+        LogUtil.info("开始加载外置模块");
+        File[] jarFiles = getModuleFiles();
+
+        long start = System.currentTimeMillis();
+        GameServers.pauseServers("server reload", null, null);
+        VariousWaysManager.beginInit();
+        boolean reload = true;
+        try {
+            if (jarFiles == null || jarFiles.length == 0) {
+                LogUtil.start("未找到外置模块文件");
+                reload = false;
+            } else {
+                for (File file : jarFiles) {
+                    ModuleLoader moduleLoader = INSTANCE.moduleLoaderMap.get(file.getAbsolutePath());
+
+                    if (moduleLoader != null) {
+                        // 检查文件的最后修改时间，修改过的文件需要重新创建一个加载器
+                        if (moduleLoader.getLastModifyTime() != file.lastModified()) {
+                            moduleLoader = createModuleLoader(file, moduleLoader);
+                        }
+                        moduleLoader.reloadModule();
+                        if (moduleLoader.isSuccess()) {
+                            INSTANCE.moduleLoaderMap.put(file.getAbsolutePath(), moduleLoader);
+                        } else {
+                            ModuleLoader origin = moduleLoader.getOldModuleLoader();
+                            moduleLoader.cleanUp();
+                            moduleLoader = origin;
+                            moduleLoader.setLastFailTime(System.currentTimeMillis());
+                        }
+                    } else {
+                        moduleLoader = createModuleLoader(file);
+                        moduleLoader.loadModule();
+                    }
+                    INSTANCE.moduleNameMap.put(moduleLoader.getModuleName(), moduleLoader);
+                }
+            }
+        } finally {
+            LogUtil.info("模块加载耗时:[{}]ms", System.currentTimeMillis() - start);
+
+            // 外置模块加载完成后，刷新可配置功能实现
+            VariousWaysManager.initEnd();
+
+            // 模块重加载后，刷新可配置功能依赖
+            if (INSTANCE.loaded && reload) {
+                VariousWaysManager.refreshChangedDependent();
+            }
+
+            GameServers.releaseServers(null);
+        }
+    }
+
+    private static File[] getModuleFiles() {
         // 系统类库路径
         String moduleRoot = getModuleRootDir();
         File moduleDir = new File(moduleRoot);
@@ -78,37 +135,9 @@ public enum ModuleManager {
         }
 
         // 获取所有的.jar和.zip文件
-        File[] jarFiles = moduleDir.listFiles(
+        return moduleDir.listFiles(
                 (file) -> file.isFile() && (file.getName().toLowerCase().endsWith(Constants.JAR_FILE_SUFFIX) || file
                         .getName().toLowerCase().endsWith(Constants.ZIP_FILE_SUFFIX)));
-
-        if (jarFiles == null || jarFiles.length == 0) {
-            LogUtil.start("未找到外置模块文件");
-            return;
-        }
-
-        BusinessPause.pauseAll();
-        long start = System.currentTimeMillis();
-        try {
-            for (File file : jarFiles) {
-                ModuleLoader moduleLoader = INSTANCE.moduleLoaderMap.get(file.getAbsolutePath());
-
-                if (moduleLoader != null) {
-                    // 检查文件的最后修改时间，修改过的文件需要重新创建一个加载器
-                    if (moduleLoader.getLastModifyTime() != file.lastModified()) {
-                        moduleLoader = createModuleLoader(file, moduleLoader);
-                    }
-                    moduleLoader.reloadModule();
-                } else {
-                    moduleLoader = createModuleLoader(file);
-                    moduleLoader.loadModule();
-                }
-                INSTANCE.moduleNameMap.put(moduleLoader.getModuleName(), moduleLoader);
-            }
-        } finally {
-            LogUtil.info("模块加载耗时:[{}]ms", System.currentTimeMillis() - start);
-            BusinessPause.releaseAll();
-        }
     }
 
     private static ModuleLoader createModuleLoader(File file) {
@@ -120,7 +149,6 @@ public enum ModuleManager {
     private static ModuleLoader createModuleLoader(File file, ModuleLoader oldModuleLoader) {
         ModuleLoader moduleLoader = ModuleLoader.createInstance(file, INSTANCE.parentClassLoader);
         moduleLoader.setOldModuleLoader(oldModuleLoader);
-        INSTANCE.moduleLoaderMap.put(file.getAbsolutePath(), moduleLoader);
         return moduleLoader;
     }
 
@@ -154,8 +182,8 @@ public enum ModuleManager {
      * @return 返回外置模块根目录
      */
     public static String getModuleRootDir() {
-        String moduleDir = SpringContextHolder.getBean(DangKangBasicProperties.class).getModule();
-        return System.getProperty("user.dir") + moduleDir + "/";
+        String moduleDir = SpringContextHolder.getStringProperty("dk.module", Constants.MODULE_ROOT_DIR);
+        return System.getProperty("user.dir") + moduleDir + File.separator;
     }
 
     /**
@@ -172,6 +200,19 @@ public enum ModuleManager {
             }
         }
         return null;
+    }
+
+    public static List<ModuleInfoDTO> getModuleList() {
+        List<ModuleInfoDTO> list = new ArrayList<>(INSTANCE.moduleLoaderMap.size());
+        for (ModuleLoader moduleLoader : INSTANCE.moduleLoaderMap.values()) {
+            ModuleInfoDTO dto = new ModuleInfoDTO();
+            dto.setName(moduleLoader.getModuleName());
+            dto.setFile(moduleLoader.getModuleFilePath());
+            dto.setLastModified(new Date(moduleLoader.getLastModifyTime()));
+            dto.setLastLoaded(moduleLoader.getLastLoadedTime());
+            list.add(dto);
+        }
+        return list;
     }
 
 }

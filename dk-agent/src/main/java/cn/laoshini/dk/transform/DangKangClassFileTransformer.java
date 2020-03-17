@@ -5,6 +5,7 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -18,21 +19,19 @@ import cn.laoshini.dk.transform.javassist.FunctionInjectionModifier;
  */
 public class DangKangClassFileTransformer implements ClassFileTransformer {
 
+    private static DangKangClassFileTransformer ins = new DangKangClassFileTransformer();
+    private List<AbstractClassFileModifier> modifiers;
+    private Set<String> gameBasePackages;
+    private Set<String> exclusivePackages;
+    private Set<AbstractClassFileModifier> outerModifiers = new LinkedHashSet<>();
+
     private DangKangClassFileTransformer() {
         initData();
     }
 
-    private static DangKangClassFileTransformer ins = new DangKangClassFileTransformer();
-
     public static DangKangClassFileTransformer getInstance() {
         return ins;
     }
-
-    private List<AbstractClassFileModifier> modifiers;
-
-    private Set<String> gameBasePackages;
-
-    private Set<String> exclusivePackages;
 
     private synchronized void initData() {
         // 注册所有的transformer
@@ -41,9 +40,7 @@ public class DangKangClassFileTransformer implements ClassFileTransformer {
         // 统计所有transformer的包过滤路径
         gameBasePackages = new CopyOnWriteArraySet<>();
         for (AbstractClassFileModifier transformer : modifiers) {
-            if (transformer.basePackage() != null && transformer.basePackage().length > 0) {
-                gameBasePackages.addAll(Arrays.asList(transformer.basePackage()));
-            }
+            registerClassModifier(transformer);
         }
 
         exclusivePackages = new CopyOnWriteArraySet<>();
@@ -59,6 +56,12 @@ public class DangKangClassFileTransformer implements ClassFileTransformer {
         exclusivePackages.add("org.springframework.");
     }
 
+    private void registerClassModifier(AbstractClassFileModifier modifier) {
+        if (modifier.basePackage() != null && modifier.basePackage().length > 0) {
+            gameBasePackages.addAll(Arrays.asList(modifier.basePackage()));
+        }
+    }
+
     /**
      * 查找并注册类文件修改器对象
      */
@@ -66,6 +69,13 @@ public class DangKangClassFileTransformer implements ClassFileTransformer {
         // 注册类文件修改器对象
         modifiers = new ArrayList<>();
         modifiers.add(new FunctionInjectionModifier());
+    }
+
+    public DangKangClassFileTransformer addClassFileModifier(AbstractClassFileModifier modifier) {
+        if (outerModifiers.add(modifier)) {
+            registerClassModifier(modifier);
+        }
+        return this;
     }
 
     @Override

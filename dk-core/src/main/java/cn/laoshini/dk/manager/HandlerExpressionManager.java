@@ -11,19 +11,19 @@ import org.springframework.stereotype.Component;
 
 import cn.laoshini.dk.annotation.FunctionDependent;
 import cn.laoshini.dk.dao.IDefaultDao;
-import cn.laoshini.dk.dao.query.BeanQueryCondition;
 import cn.laoshini.dk.dao.query.QueryUtil;
 import cn.laoshini.dk.domain.GameSubject;
 import cn.laoshini.dk.domain.dto.ExpressionBlockDTO;
 import cn.laoshini.dk.domain.dto.HandlerExpDescriptorDTO;
+import cn.laoshini.dk.domain.msg.ReqMessage;
+import cn.laoshini.dk.domain.msg.RespMessage;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
 import cn.laoshini.dk.entity.HandlerExpDescriptor;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.expression.ExpressionLogicFactory;
 import cn.laoshini.dk.expression.IExpressionLogic;
 import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.handler.ExpressionMessageHandler;
-import cn.laoshini.dk.net.msg.ReqMessage;
-import cn.laoshini.dk.net.msg.RespMessage;
 import cn.laoshini.dk.util.CollectionUtil;
 
 /**
@@ -34,10 +34,10 @@ import cn.laoshini.dk.util.CollectionUtil;
 @Component
 public class HandlerExpressionManager {
 
-    @FunctionDependent(nullable = true, afterExecute = "loadHandlerExpression")
+    @FunctionDependent(nullable = true, initMethod = "loadHandlerExpression")
     private IDefaultDao defaultDao;
 
-    @Value("${dk.generate.handler:#{dangKangGenerateProperties.handler}}")
+    @Value("${dk.generate.handler:false}")
     private boolean generateHandler;
 
     /**

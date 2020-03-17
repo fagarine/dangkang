@@ -4,6 +4,24 @@
 package cn.laoshini.dk.net.msg;
 
 public final class BaseProtobufMessage {
+    private static final com.google.protobuf.Descriptors.Descriptor internal_static_Base_descriptor;
+    private static final com.google.protobuf.GeneratedMessageV3.FieldAccessorTable internal_static_Base_fieldAccessorTable;
+    private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
+
+    static {
+        String[] descriptorData = { "\n\nBase.proto\032\031google/protobuf/any.proto\""
+                                    + "]\n\004Base\022\021\n\tmessageId\030\001 \001(\005\022\014\n\004code\030\002 \001(\005"
+                                    + "\022\016\n\006params\030\003 \001(\t\022$\n\006detail\030\004 \001(\0132\024.googl"
+                                    + "e.protobuf.AnyB-\n\026cn.laoshini.dk.net.msg"
+                                    + "B\023BaseProtobufMessageb\006proto3" };
+        descriptor = com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(descriptorData,
+                new com.google.protobuf.Descriptors.FileDescriptor[] { com.google.protobuf.AnyProto.getDescriptor(), });
+        internal_static_Base_descriptor = getDescriptor().getMessageTypes().get(0);
+        internal_static_Base_fieldAccessorTable = new com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+                internal_static_Base_descriptor, new String[] { "MessageId", "Code", "Params", "Detail", });
+        com.google.protobuf.AnyProto.getDescriptor();
+    }
+
     private BaseProtobufMessage() {
     }
 
@@ -14,67 +32,83 @@ public final class BaseProtobufMessage {
         registerAllExtensions((com.google.protobuf.ExtensionRegistryLite) registry);
     }
 
+    public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
+        return descriptor;
+    }
+
     public interface BaseOrBuilder extends
             // @@protoc_insertion_point(interface_extends:Base)
             com.google.protobuf.MessageOrBuilder {
 
         /**
          * <pre>
-         * 协议号
+         * 消息id
          * </pre>
          *
-         * <code>int32 cmd = 1;</code>
+         * <code>int32 messageId = 1;</code>
+         *
+         * @return The messageId.
          */
-        int getCmd();
+        int getMessageId();
 
         /**
          * <pre>
-         * 返回码，正常返回为200
+         * 消息返回码，非错误消息则为200
          * </pre>
          *
          * <code>int32 code = 2;</code>
+         *
+         * @return The code.
          */
         int getCode();
 
         /**
          * <pre>
-         * 预留扩展参数
+         * 预留扩展参数，非必须，一般用于描述错误信息
          * </pre>
          *
          * <code>string params = 3;</code>
+         *
+         * @return The params.
          */
         String getParams();
 
         /**
          * <pre>
-         * 预留扩展参数
+         * 预留扩展参数，非必须，一般用于描述错误信息
          * </pre>
          *
          * <code>string params = 3;</code>
+         *
+         * @return The bytes for params.
          */
         com.google.protobuf.ByteString getParamsBytes();
 
         /**
          * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
+         * 消息内容数据，指向用户具体的消息格式
          * </pre>
          *
          * <code>.google.protobuf.Any detail = 4;</code>
+         *
+         * @return Whether the detail field is set.
          */
         boolean hasDetail();
 
         /**
          * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
+         * 消息内容数据，指向用户具体的消息格式
          * </pre>
          *
          * <code>.google.protobuf.Any detail = 4;</code>
+         *
+         * @return The detail.
          */
         com.google.protobuf.Any getDetail();
 
         /**
          * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
+         * 消息内容数据，指向用户具体的消息格式
          * </pre>
          *
          * <code>.google.protobuf.Any detail = 4;</code>
@@ -88,7 +122,31 @@ public final class BaseProtobufMessage {
     public static final class Base extends com.google.protobuf.GeneratedMessageV3 implements
             // @@protoc_insertion_point(message_implements:Base)
             BaseOrBuilder {
+        public static final int MESSAGEID_FIELD_NUMBER = 1;
+        public static final int CODE_FIELD_NUMBER = 2;
+        public static final int PARAMS_FIELD_NUMBER = 3;
+        public static final int DETAIL_FIELD_NUMBER = 4;
         private static final long serialVersionUID = 0L;
+        // @@protoc_insertion_point(class_scope:Base)
+        private static final Base DEFAULT_INSTANCE;
+        private static final com.google.protobuf.Parser<Base> PARSER = new com.google.protobuf.AbstractParser<Base>() {
+            @Override
+            public Base parsePartialFrom(com.google.protobuf.CodedInputStream input,
+                    com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+                    throws com.google.protobuf.InvalidProtocolBufferException {
+                return new Base(input, extensionRegistry);
+            }
+        };
+
+        static {
+            DEFAULT_INSTANCE = new Base();
+        }
+
+        private int messageId_;
+        private int code_;
+        private volatile Object params_;
+        private com.google.protobuf.Any detail_;
+        private byte memoizedIsInitialized = -1;
 
         // Use Base.newBuilder() to construct.
         private Base(com.google.protobuf.GeneratedMessageV3.Builder<?> builder) {
@@ -98,12 +156,6 @@ public final class BaseProtobufMessage {
         private Base() {
             params_ = "";
         }
-
-        @Override
-        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
-            return this.unknownFields;
-        }
-
         private Base(com.google.protobuf.CodedInputStream input,
                 com.google.protobuf.ExtensionRegistryLite extensionRegistry)
                 throws com.google.protobuf.InvalidProtocolBufferException {
@@ -111,7 +163,6 @@ public final class BaseProtobufMessage {
             if (extensionRegistry == null) {
                 throw new NullPointerException();
             }
-            int mutable_bitField0_ = 0;
             com.google.protobuf.UnknownFieldSet.Builder unknownFields = com.google.protobuf.UnknownFieldSet
                     .newBuilder();
             try {
@@ -124,7 +175,7 @@ public final class BaseProtobufMessage {
                             break;
                         case 8: {
 
-                            cmd_ = input.readInt32();
+                            messageId_ = input.readInt32();
                             break;
                         }
                         case 16: {
@@ -171,220 +222,6 @@ public final class BaseProtobufMessage {
 
         public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
             return BaseProtobufMessage.internal_static_Base_descriptor;
-        }
-
-        @Override
-        protected FieldAccessorTable internalGetFieldAccessorTable() {
-            return BaseProtobufMessage.internal_static_Base_fieldAccessorTable
-                    .ensureFieldAccessorsInitialized(Base.class, Builder.class);
-        }
-
-        public static final int CMD_FIELD_NUMBER = 1;
-        private int cmd_;
-
-        /**
-         * <pre>
-         * 协议号
-         * </pre>
-         *
-         * <code>int32 cmd = 1;</code>
-         */
-        public int getCmd() {
-            return cmd_;
-        }
-
-        public static final int CODE_FIELD_NUMBER = 2;
-        private int code_;
-
-        /**
-         * <pre>
-         * 返回码，正常返回为200
-         * </pre>
-         *
-         * <code>int32 code = 2;</code>
-         */
-        public int getCode() {
-            return code_;
-        }
-
-        public static final int PARAMS_FIELD_NUMBER = 3;
-        private volatile Object params_;
-
-        /**
-         * <pre>
-         * 预留扩展参数
-         * </pre>
-         *
-         * <code>string params = 3;</code>
-         */
-        public String getParams() {
-            Object ref = params_;
-            if (ref instanceof String) {
-                return (String) ref;
-            } else {
-                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
-                String s = bs.toStringUtf8();
-                params_ = s;
-                return s;
-            }
-        }
-
-        /**
-         * <pre>
-         * 预留扩展参数
-         * </pre>
-         *
-         * <code>string params = 3;</code>
-         */
-        public com.google.protobuf.ByteString getParamsBytes() {
-            Object ref = params_;
-            if (ref instanceof String) {
-                com.google.protobuf.ByteString b = com.google.protobuf.ByteString.copyFromUtf8((String) ref);
-                params_ = b;
-                return b;
-            } else {
-                return (com.google.protobuf.ByteString) ref;
-            }
-        }
-
-        public static final int DETAIL_FIELD_NUMBER = 4;
-        private com.google.protobuf.Any detail_;
-
-        /**
-         * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
-         * </pre>
-         *
-         * <code>.google.protobuf.Any detail = 4;</code>
-         */
-        public boolean hasDetail() {
-            return detail_ != null;
-        }
-
-        /**
-         * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
-         * </pre>
-         *
-         * <code>.google.protobuf.Any detail = 4;</code>
-         */
-        public com.google.protobuf.Any getDetail() {
-            return detail_ == null ? com.google.protobuf.Any.getDefaultInstance() : detail_;
-        }
-
-        /**
-         * <pre>
-         * 扩展对象，具体的消息内容，类似于proto2中的extensions
-         * </pre>
-         *
-         * <code>.google.protobuf.Any detail = 4;</code>
-         */
-        public com.google.protobuf.AnyOrBuilder getDetailOrBuilder() {
-            return getDetail();
-        }
-
-        private byte memoizedIsInitialized = -1;
-
-        @Override
-        public final boolean isInitialized() {
-            byte isInitialized = memoizedIsInitialized;
-            if (isInitialized == 1)
-                return true;
-            if (isInitialized == 0)
-                return false;
-
-            memoizedIsInitialized = 1;
-            return true;
-        }
-
-        @Override
-        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
-            if (cmd_ != 0) {
-                output.writeInt32(1, cmd_);
-            }
-            if (code_ != 0) {
-                output.writeInt32(2, code_);
-            }
-            if (!getParamsBytes().isEmpty()) {
-                com.google.protobuf.GeneratedMessageV3.writeString(output, 3, params_);
-            }
-            if (detail_ != null) {
-                output.writeMessage(4, getDetail());
-            }
-            unknownFields.writeTo(output);
-        }
-
-        @Override
-        public int getSerializedSize() {
-            int size = memoizedSize;
-            if (size != -1)
-                return size;
-
-            size = 0;
-            if (cmd_ != 0) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(1, cmd_);
-            }
-            if (code_ != 0) {
-                size += com.google.protobuf.CodedOutputStream.computeInt32Size(2, code_);
-            }
-            if (!getParamsBytes().isEmpty()) {
-                size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, params_);
-            }
-            if (detail_ != null) {
-                size += com.google.protobuf.CodedOutputStream.computeMessageSize(4, getDetail());
-            }
-            size += unknownFields.getSerializedSize();
-            memoizedSize = size;
-            return size;
-        }
-
-        @Override
-        public boolean equals(final Object obj) {
-            if (obj == this) {
-                return true;
-            }
-            if (!(obj instanceof Base)) {
-                return super.equals(obj);
-            }
-            Base other = (Base) obj;
-
-            if (getCmd() != other.getCmd())
-                return false;
-            if (getCode() != other.getCode())
-                return false;
-            if (!getParams().equals(other.getParams()))
-                return false;
-            if (hasDetail() != other.hasDetail())
-                return false;
-            if (hasDetail()) {
-                if (!getDetail().equals(other.getDetail()))
-                    return false;
-            }
-            if (!unknownFields.equals(other.unknownFields))
-                return false;
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            if (memoizedHashCode != 0) {
-                return memoizedHashCode;
-            }
-            int hash = 41;
-            hash = (19 * hash) + getDescriptor().hashCode();
-            hash = (37 * hash) + CMD_FIELD_NUMBER;
-            hash = (53 * hash) + getCmd();
-            hash = (37 * hash) + CODE_FIELD_NUMBER;
-            hash = (53 * hash) + getCode();
-            hash = (37 * hash) + PARAMS_FIELD_NUMBER;
-            hash = (53 * hash) + getParams().hashCode();
-            if (hasDetail()) {
-                hash = (37 * hash) + DETAIL_FIELD_NUMBER;
-                hash = (53 * hash) + getDetail().hashCode();
-            }
-            hash = (29 * hash) + unknownFields.hashCode();
-            memoizedHashCode = hash;
-            return hash;
         }
 
         public static Base parseFrom(java.nio.ByteBuffer data)
@@ -446,17 +283,248 @@ public final class BaseProtobufMessage {
             return com.google.protobuf.GeneratedMessageV3.parseWithIOException(PARSER, input, extensionRegistry);
         }
 
-        @Override
-        public Builder newBuilderForType() {
-            return newBuilder();
-        }
-
         public static Builder newBuilder() {
             return DEFAULT_INSTANCE.toBuilder();
         }
 
         public static Builder newBuilder(Base prototype) {
             return DEFAULT_INSTANCE.toBuilder().mergeFrom(prototype);
+        }
+
+        public static Base getDefaultInstance() {
+            return DEFAULT_INSTANCE;
+        }
+
+        public static com.google.protobuf.Parser<Base> parser() {
+            return PARSER;
+        }
+
+        @Override
+        @SuppressWarnings({ "unused" })
+        protected Object newInstance(UnusedPrivateParameter unused) {
+            return new Base();
+        }
+
+        @Override
+        public final com.google.protobuf.UnknownFieldSet getUnknownFields() {
+            return this.unknownFields;
+        }
+
+        @Override
+        protected FieldAccessorTable internalGetFieldAccessorTable() {
+            return BaseProtobufMessage.internal_static_Base_fieldAccessorTable
+                    .ensureFieldAccessorsInitialized(Base.class, Builder.class);
+        }
+
+        /**
+         * <pre>
+         * 消息id
+         * </pre>
+         *
+         * <code>int32 messageId = 1;</code>
+         *
+         * @return The messageId.
+         */
+        public int getMessageId() {
+            return messageId_;
+        }
+
+        /**
+         * <pre>
+         * 消息返回码，非错误消息则为200
+         * </pre>
+         *
+         * <code>int32 code = 2;</code>
+         *
+         * @return The code.
+         */
+        public int getCode() {
+            return code_;
+        }
+
+        /**
+         * <pre>
+         * 预留扩展参数，非必须，一般用于描述错误信息
+         * </pre>
+         *
+         * <code>string params = 3;</code>
+         *
+         * @return The params.
+         */
+        public String getParams() {
+            Object ref = params_;
+            if (ref instanceof String) {
+                return (String) ref;
+            } else {
+                com.google.protobuf.ByteString bs = (com.google.protobuf.ByteString) ref;
+                String s = bs.toStringUtf8();
+                params_ = s;
+                return s;
+            }
+        }
+
+        /**
+         * <pre>
+         * 预留扩展参数，非必须，一般用于描述错误信息
+         * </pre>
+         *
+         * <code>string params = 3;</code>
+         *
+         * @return The bytes for params.
+         */
+        public com.google.protobuf.ByteString getParamsBytes() {
+            Object ref = params_;
+            if (ref instanceof String) {
+                com.google.protobuf.ByteString b = com.google.protobuf.ByteString.copyFromUtf8((String) ref);
+                params_ = b;
+                return b;
+            } else {
+                return (com.google.protobuf.ByteString) ref;
+            }
+        }
+
+        /**
+         * <pre>
+         * 消息内容数据，指向用户具体的消息格式
+         * </pre>
+         *
+         * <code>.google.protobuf.Any detail = 4;</code>
+         *
+         * @return Whether the detail field is set.
+         */
+        public boolean hasDetail() {
+            return detail_ != null;
+        }
+
+        /**
+         * <pre>
+         * 消息内容数据，指向用户具体的消息格式
+         * </pre>
+         *
+         * <code>.google.protobuf.Any detail = 4;</code>
+         *
+         * @return The detail.
+         */
+        public com.google.protobuf.Any getDetail() {
+            return detail_ == null ? com.google.protobuf.Any.getDefaultInstance() : detail_;
+        }
+
+        /**
+         * <pre>
+         * 消息内容数据，指向用户具体的消息格式
+         * </pre>
+         *
+         * <code>.google.protobuf.Any detail = 4;</code>
+         */
+        public com.google.protobuf.AnyOrBuilder getDetailOrBuilder() {
+            return getDetail();
+        }
+
+        @Override
+        public final boolean isInitialized() {
+            byte isInitialized = memoizedIsInitialized;
+            if (isInitialized == 1)
+                return true;
+            if (isInitialized == 0)
+                return false;
+
+            memoizedIsInitialized = 1;
+            return true;
+        }
+
+        @Override
+        public void writeTo(com.google.protobuf.CodedOutputStream output) throws java.io.IOException {
+            if (messageId_ != 0) {
+                output.writeInt32(1, messageId_);
+            }
+            if (code_ != 0) {
+                output.writeInt32(2, code_);
+            }
+            if (!getParamsBytes().isEmpty()) {
+                com.google.protobuf.GeneratedMessageV3.writeString(output, 3, params_);
+            }
+            if (detail_ != null) {
+                output.writeMessage(4, getDetail());
+            }
+            unknownFields.writeTo(output);
+        }
+
+        @Override
+        public int getSerializedSize() {
+            int size = memoizedSize;
+            if (size != -1)
+                return size;
+
+            size = 0;
+            if (messageId_ != 0) {
+                size += com.google.protobuf.CodedOutputStream.computeInt32Size(1, messageId_);
+            }
+            if (code_ != 0) {
+                size += com.google.protobuf.CodedOutputStream.computeInt32Size(2, code_);
+            }
+            if (!getParamsBytes().isEmpty()) {
+                size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, params_);
+            }
+            if (detail_ != null) {
+                size += com.google.protobuf.CodedOutputStream.computeMessageSize(4, getDetail());
+            }
+            size += unknownFields.getSerializedSize();
+            memoizedSize = size;
+            return size;
+        }
+
+        @Override
+        public boolean equals(final Object obj) {
+            if (obj == this) {
+                return true;
+            }
+            if (!(obj instanceof Base)) {
+                return super.equals(obj);
+            }
+            Base other = (Base) obj;
+
+            if (getMessageId() != other.getMessageId())
+                return false;
+            if (getCode() != other.getCode())
+                return false;
+            if (!getParams().equals(other.getParams()))
+                return false;
+            if (hasDetail() != other.hasDetail())
+                return false;
+            if (hasDetail()) {
+                if (!getDetail().equals(other.getDetail()))
+                    return false;
+            }
+            if (!unknownFields.equals(other.unknownFields))
+                return false;
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            if (memoizedHashCode != 0) {
+                return memoizedHashCode;
+            }
+            int hash = 41;
+            hash = (19 * hash) + getDescriptor().hashCode();
+            hash = (37 * hash) + MESSAGEID_FIELD_NUMBER;
+            hash = (53 * hash) + getMessageId();
+            hash = (37 * hash) + CODE_FIELD_NUMBER;
+            hash = (53 * hash) + getCode();
+            hash = (37 * hash) + PARAMS_FIELD_NUMBER;
+            hash = (53 * hash) + getParams().hashCode();
+            if (hasDetail()) {
+                hash = (37 * hash) + DETAIL_FIELD_NUMBER;
+                hash = (53 * hash) + getDetail().hashCode();
+            }
+            hash = (29 * hash) + unknownFields.hashCode();
+            memoizedHashCode = hash;
+            return hash;
+        }
+
+        @Override
+        public Builder newBuilderForType() {
+            return newBuilder();
         }
 
         @Override
@@ -470,21 +538,27 @@ public final class BaseProtobufMessage {
             return builder;
         }
 
+        @Override
+        public com.google.protobuf.Parser<Base> getParserForType() {
+            return PARSER;
+        }
+
+        @Override
+        public Base getDefaultInstanceForType() {
+            return DEFAULT_INSTANCE;
+        }
+
         /**
          * Protobuf type {@code Base}
          */
         public static final class Builder extends com.google.protobuf.GeneratedMessageV3.Builder<Builder> implements
                 // @@protoc_insertion_point(builder_implements:Base)
                 BaseOrBuilder {
-            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
-                return BaseProtobufMessage.internal_static_Base_descriptor;
-            }
-
-            @Override
-            protected FieldAccessorTable internalGetFieldAccessorTable() {
-                return BaseProtobufMessage.internal_static_Base_fieldAccessorTable
-                        .ensureFieldAccessorsInitialized(Base.class, Builder.class);
-            }
+            private int messageId_;
+            private int code_;
+            private Object params_ = "";
+            private com.google.protobuf.Any detail_;
+            private com.google.protobuf.SingleFieldBuilderV3<com.google.protobuf.Any, com.google.protobuf.Any.Builder, com.google.protobuf.AnyOrBuilder> detailBuilder_;
 
             // Construct using cn.laoshini.dk.net.msg.BaseProtobufMessage.Base.newBuilder()
             private Builder() {
@@ -496,6 +570,16 @@ public final class BaseProtobufMessage {
                 maybeForceBuilderInitialization();
             }
 
+            public static final com.google.protobuf.Descriptors.Descriptor getDescriptor() {
+                return BaseProtobufMessage.internal_static_Base_descriptor;
+            }
+
+            @Override
+            protected FieldAccessorTable internalGetFieldAccessorTable() {
+                return BaseProtobufMessage.internal_static_Base_fieldAccessorTable
+                        .ensureFieldAccessorsInitialized(Base.class, Builder.class);
+            }
+
             private void maybeForceBuilderInitialization() {
                 if (com.google.protobuf.GeneratedMessageV3.alwaysUseFieldBuilders) {
                 }
@@ -504,7 +588,7 @@ public final class BaseProtobufMessage {
             @Override
             public Builder clear() {
                 super.clear();
-                cmd_ = 0;
+                messageId_ = 0;
 
                 code_ = 0;
 
@@ -541,7 +625,7 @@ public final class BaseProtobufMessage {
             @Override
             public Base buildPartial() {
                 Base result = new Base(this);
-                result.cmd_ = cmd_;
+                result.messageId_ = messageId_;
                 result.code_ = code_;
                 result.params_ = params_;
                 if (detailBuilder_ == null) {
@@ -597,8 +681,8 @@ public final class BaseProtobufMessage {
             public Builder mergeFrom(Base other) {
                 if (other == Base.getDefaultInstance())
                     return this;
-                if (other.getCmd() != 0) {
-                    setCmd(other.getCmd());
+                if (other.getMessageId() != 0) {
+                    setMessageId(other.getMessageId());
                 }
                 if (other.getCode() != 0) {
                     setCode(other.getCode());
@@ -637,55 +721,60 @@ public final class BaseProtobufMessage {
                 return this;
             }
 
-            private int cmd_;
-
             /**
              * <pre>
-             * 协议号
+             * 消息id
              * </pre>
              *
-             * <code>int32 cmd = 1;</code>
+             * <code>int32 messageId = 1;</code>
+             *
+             * @return The messageId.
              */
-            public int getCmd() {
-                return cmd_;
+            public int getMessageId() {
+                return messageId_;
             }
 
             /**
              * <pre>
-             * 协议号
+             * 消息id
              * </pre>
              *
-             * <code>int32 cmd = 1;</code>
+             * <code>int32 messageId = 1;</code>
+             *
+             * @param value The messageId to set.
+             * @return This builder for chaining.
              */
-            public Builder setCmd(int value) {
+            public Builder setMessageId(int value) {
 
-                cmd_ = value;
+                messageId_ = value;
                 onChanged();
                 return this;
             }
 
             /**
              * <pre>
-             * 协议号
+             * 消息id
              * </pre>
              *
-             * <code>int32 cmd = 1;</code>
+             * <code>int32 messageId = 1;</code>
+             *
+             * @return This builder for chaining.
              */
-            public Builder clearCmd() {
+            public Builder clearMessageId() {
 
-                cmd_ = 0;
+                messageId_ = 0;
                 onChanged();
                 return this;
             }
 
-            private int code_;
-
             /**
              * <pre>
-             * 返回码，正常返回为200
+             * 消息返回码，非错误消息则为200
              * </pre>
              *
              * <code>int32 code = 2;</code>
+             *
+             * @return The code.
              */
             public int getCode() {
                 return code_;
@@ -693,10 +782,13 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 返回码，正常返回为200
+             * 消息返回码，非错误消息则为200
              * </pre>
              *
              * <code>int32 code = 2;</code>
+             *
+             * @param value The code to set.
+             * @return This builder for chaining.
              */
             public Builder setCode(int value) {
 
@@ -707,10 +799,12 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 返回码，正常返回为200
+             * 消息返回码，非错误消息则为200
              * </pre>
              *
              * <code>int32 code = 2;</code>
+             *
+             * @return This builder for chaining.
              */
             public Builder clearCode() {
 
@@ -719,14 +813,14 @@ public final class BaseProtobufMessage {
                 return this;
             }
 
-            private Object params_ = "";
-
             /**
              * <pre>
-             * 预留扩展参数
+             * 预留扩展参数，非必须，一般用于描述错误信息
              * </pre>
              *
              * <code>string params = 3;</code>
+             *
+             * @return The params.
              */
             public String getParams() {
                 Object ref = params_;
@@ -742,10 +836,32 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 预留扩展参数
+             * 预留扩展参数，非必须，一般用于描述错误信息
              * </pre>
              *
              * <code>string params = 3;</code>
+             *
+             * @param value The params to set.
+             * @return This builder for chaining.
+             */
+            public Builder setParams(String value) {
+                if (value == null) {
+                    throw new NullPointerException();
+                }
+
+                params_ = value;
+                onChanged();
+                return this;
+            }
+
+            /**
+             * <pre>
+             * 预留扩展参数，非必须，一般用于描述错误信息
+             * </pre>
+             *
+             * <code>string params = 3;</code>
+             *
+             * @return The bytes for params.
              */
             public com.google.protobuf.ByteString getParamsBytes() {
                 Object ref = params_;
@@ -760,41 +876,13 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 预留扩展参数
+             * 预留扩展参数，非必须，一般用于描述错误信息
              * </pre>
              *
              * <code>string params = 3;</code>
-             */
-            public Builder setParams(String value) {
-                if (value == null) {
-                    throw new NullPointerException();
-                }
-
-                params_ = value;
-                onChanged();
-                return this;
-            }
-
-            /**
-             * <pre>
-             * 预留扩展参数
-             * </pre>
              *
-             * <code>string params = 3;</code>
-             */
-            public Builder clearParams() {
-
-                params_ = getDefaultInstance().getParams();
-                onChanged();
-                return this;
-            }
-
-            /**
-             * <pre>
-             * 预留扩展参数
-             * </pre>
-             *
-             * <code>string params = 3;</code>
+             * @param value The bytes for params to set.
+             * @return This builder for chaining.
              */
             public Builder setParamsBytes(com.google.protobuf.ByteString value) {
                 if (value == null) {
@@ -807,15 +895,30 @@ public final class BaseProtobufMessage {
                 return this;
             }
 
-            private com.google.protobuf.Any detail_;
-            private com.google.protobuf.SingleFieldBuilderV3<com.google.protobuf.Any, com.google.protobuf.Any.Builder, com.google.protobuf.AnyOrBuilder> detailBuilder_;
+            /**
+             * <pre>
+             * 预留扩展参数，非必须，一般用于描述错误信息
+             * </pre>
+             *
+             * <code>string params = 3;</code>
+             *
+             * @return This builder for chaining.
+             */
+            public Builder clearParams() {
+
+                params_ = getDefaultInstance().getParams();
+                onChanged();
+                return this;
+            }
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
+             *
+             * @return Whether the detail field is set.
              */
             public boolean hasDetail() {
                 return detailBuilder_ != null || detail_ != null;
@@ -823,10 +926,12 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
+             *
+             * @return The detail.
              */
             public com.google.protobuf.Any getDetail() {
                 if (detailBuilder_ == null) {
@@ -838,7 +943,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -859,7 +964,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -877,7 +982,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -899,7 +1004,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -918,7 +1023,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -931,7 +1036,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -946,7 +1051,7 @@ public final class BaseProtobufMessage {
 
             /**
              * <pre>
-             * 扩展对象，具体的消息内容，类似于proto2中的extensions
+             * 消息内容数据，指向用户具体的消息格式
              * </pre>
              *
              * <code>.google.protobuf.Any detail = 4;</code>
@@ -973,70 +1078,6 @@ public final class BaseProtobufMessage {
             // @@protoc_insertion_point(builder_scope:Base)
         }
 
-        // @@protoc_insertion_point(class_scope:Base)
-        private static final Base DEFAULT_INSTANCE;
-
-        static {
-            DEFAULT_INSTANCE = new Base();
-        }
-
-        public static Base getDefaultInstance() {
-            return DEFAULT_INSTANCE;
-        }
-
-        private static final com.google.protobuf.Parser<Base> PARSER = new com.google.protobuf.AbstractParser<Base>() {
-            @Override
-            public Base parsePartialFrom(com.google.protobuf.CodedInputStream input,
-                    com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-                    throws com.google.protobuf.InvalidProtocolBufferException {
-                return new Base(input, extensionRegistry);
-            }
-        };
-
-        public static com.google.protobuf.Parser<Base> parser() {
-            return PARSER;
-        }
-
-        @Override
-        public com.google.protobuf.Parser<Base> getParserForType() {
-            return PARSER;
-        }
-
-        @Override
-        public Base getDefaultInstanceForType() {
-            return DEFAULT_INSTANCE;
-        }
-
-    }
-
-    private static final com.google.protobuf.Descriptors.Descriptor internal_static_Base_descriptor;
-    private static final com.google.protobuf.GeneratedMessageV3.FieldAccessorTable internal_static_Base_fieldAccessorTable;
-
-    public static com.google.protobuf.Descriptors.FileDescriptor getDescriptor() {
-        return descriptor;
-    }
-
-    private static com.google.protobuf.Descriptors.FileDescriptor descriptor;
-
-    static {
-        String[] descriptorData = { "\n\nBase.proto\032\031google/protobuf/any.proto\""
-                + "W\n\004Base\022\013\n\003cmd\030\001 \001(\005\022\014\n\004code\030\002 \001(\005\022\016\n\006pa"
-                + "rams\030\003 \001(\t\022$\n\006detail\030\004 \001(\0132\024.google.prot"
-                + "obuf.AnyB-\n\026cn.laoshini.dk.net.msgB\023Base" + "ProtobufMessageb\006proto3" };
-        com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner assigner = new com.google.protobuf.Descriptors.FileDescriptor.InternalDescriptorAssigner() {
-            public com.google.protobuf.ExtensionRegistry assignDescriptors(
-                    com.google.protobuf.Descriptors.FileDescriptor root) {
-                descriptor = root;
-                return null;
-            }
-        };
-        com.google.protobuf.Descriptors.FileDescriptor.internalBuildGeneratedFileFrom(descriptorData,
-                new com.google.protobuf.Descriptors.FileDescriptor[] { com.google.protobuf.AnyProto.getDescriptor(), },
-                assigner);
-        internal_static_Base_descriptor = getDescriptor().getMessageTypes().get(0);
-        internal_static_Base_fieldAccessorTable = new com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
-                internal_static_Base_descriptor, new String[] { "Cmd", "Code", "Params", "Detail", });
-        com.google.protobuf.AnyProto.getDescriptor();
     }
 
     // @@protoc_insertion_point(outer_class_scope)

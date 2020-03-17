@@ -1,7 +1,5 @@
 package cn.laoshini.dk.server;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import cn.laoshini.dk.util.LogUtil;
@@ -16,18 +14,17 @@ public abstract class AbstractServer extends Thread {
     /**
      * 是否关服，关服后不再接受消息处理
      */
-    protected AtomicBoolean shutdown = new AtomicBoolean();
+    protected AtomicBoolean shutdown = new AtomicBoolean(true);
 
     /**
      * 是否暂停任务
      */
     protected AtomicBoolean pause = new AtomicBoolean();
 
-    private static List<AbstractServer> servers = new ArrayList<>();
-
-    public AbstractServer() {
-        servers.add(this);
-    }
+    /**
+     * 服务启动时间
+     */
+    private long startTime;
 
     /**
      * 返回服务器线程名称
@@ -55,21 +52,28 @@ public abstract class AbstractServer extends Thread {
         }
     }
 
-    public static void pauseAll() {
-        for (AbstractServer server : servers) {
-            server.pauseServer();
-        }
-    }
-
-    public static void unPauseAll() {
-        for (AbstractServer server : servers) {
-            server.unPauseServer();
-        }
-    }
-
     @Override
     public void run() {
         // 设置线程名称
         setName(getServerThreadName());
+
+        shutdown.set(false);
+        startTime = System.currentTimeMillis();
+    }
+
+    public boolean isPaused() {
+        return pause.get();
+    }
+
+    public boolean isShutdown() {
+        return shutdown.get();
+    }
+
+    public boolean isRunning() {
+        return isAlive() && !isPaused() && !isShutdown();
+    }
+
+    public long getStartTime() {
+        return startTime;
     }
 }

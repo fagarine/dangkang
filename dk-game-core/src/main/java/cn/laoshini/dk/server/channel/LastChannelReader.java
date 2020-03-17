@@ -4,9 +4,9 @@ import io.netty.channel.ChannelHandlerContext;
 
 import cn.laoshini.dk.constant.AttributeKeyConstant;
 import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.domain.msg.ReqMessage;
 import cn.laoshini.dk.net.MessageHandlerHolder;
 import cn.laoshini.dk.net.handler.MessageReceiveDispatcher;
-import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.util.LogUtil;
 
 /**

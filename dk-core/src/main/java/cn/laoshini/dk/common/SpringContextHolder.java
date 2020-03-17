@@ -5,9 +5,12 @@ import java.util.Properties;
 
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertiesPropertySource;
 import org.springframework.core.env.StandardEnvironment;
+
+import cn.laoshini.dk.util.StringUtil;
 
 /**
  * 记录和提供Spring上下文对象
@@ -16,11 +19,10 @@ import org.springframework.core.env.StandardEnvironment;
  */
 public class SpringContextHolder {
 
+    private static SpringContextHolder instance = new SpringContextHolder();
     private ApplicationContext applicationContext;
     private ClassLoader originClassLoader;
     private boolean allowOverriding;
-
-    private static SpringContextHolder instance = new SpringContextHolder();
 
     private SpringContextHolder() {
         // 记录当前类实例，方便通过静态方法访问
@@ -47,7 +49,7 @@ public class SpringContextHolder {
     }
 
     public static DefaultListableBeanFactory getDefaultListableBeanFactory() {
-        DkApplicationContext context = (DkApplicationContext) getContext();
+        ConfigurableApplicationContext context = (ConfigurableApplicationContext) getContext();
         return (DefaultListableBeanFactory) context.getBeanFactory();
     }
 
@@ -87,7 +89,31 @@ public class SpringContextHolder {
     }
 
     public static String getProperty(String key) {
-        return getContext().getEnvironment().getProperty(key);
+        return getEnvironment().getProperty(key);
+    }
+
+    public static String getStringProperty(String key, String defaultValue) {
+        String value = getEnvironment().getProperty(key);
+        if (StringUtil.isEmptyString(value)) {
+            return defaultValue;
+        }
+        return value;
+    }
+
+    public static boolean getBoolProperty(String key, boolean defaultValue) {
+        String value = getEnvironment().getProperty(key);
+        if (StringUtil.isEmptyString(value)) {
+            return defaultValue;
+        }
+        return Boolean.TRUE.toString().equalsIgnoreCase(value);
+    }
+
+    public static int getIntProperty(String key, int defaultValue) {
+        String value = getEnvironment().getProperty(key);
+        if (StringUtil.isEmptyString(value)) {
+            return defaultValue;
+        }
+        return Integer.parseInt(value);
     }
 
 }

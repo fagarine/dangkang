@@ -3,10 +3,10 @@ package cn.laoshini.dk.dao;
 import java.util.List;
 
 import cn.laoshini.dk.annotation.ConfigurableFunction;
-import cn.laoshini.dk.dao.query.BeanQueryCondition;
-import cn.laoshini.dk.dao.query.ListQueryCondition;
-import cn.laoshini.dk.dao.query.Page;
-import cn.laoshini.dk.dao.query.PageQueryCondition;
+import cn.laoshini.dk.domain.query.BeanQueryCondition;
+import cn.laoshini.dk.domain.query.ListQueryCondition;
+import cn.laoshini.dk.domain.query.Page;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 
 /**
  * 当康系统提供的缺省DAO接口，提供统一的数据访问接口

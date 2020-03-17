@@ -1,0 +1,15 @@
+// 当康系统默认的Protobuf消息格式描述文件，使用proto3语法
+syntax = "proto3";
+
+// 使用google.protobuf.Any类
+import "google/protobuf/any.proto";
+
+option java_package = "cn.laoshini.dk.net.msg";
+option java_outer_classname = "BaseProtobufMessage";
+
+message Base {
+  	int32 messageId = 1;			// 消息id
+  	int32 code = 2;					// 消息返回码，非错误消息则为200
+  	string params = 3;				// 预留扩展参数，非必须，一般用于描述错误信息
+	google.protobuf.Any detail = 4;	// 消息内容数据，指向用户具体的消息格式
+}

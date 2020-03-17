@@ -8,14 +8,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 
 import cn.laoshini.dk.constant.QueryConditionKeyEnum;
-import cn.laoshini.dk.dao.query.AbstractQueryCondition;
-import cn.laoshini.dk.dao.query.PageQueryCondition;
 import cn.laoshini.dk.dao.update.SqlWrapper;
 import cn.laoshini.dk.dao.update.UpdateSqlWrapper;
 import cn.laoshini.dk.domain.common.Tuple;
+import cn.laoshini.dk.domain.query.AbstractQueryCondition;
+import cn.laoshini.dk.domain.query.PageQueryCondition;
 import cn.laoshini.dk.exception.DaoException;
 import cn.laoshini.dk.util.CollectionUtil;
 import cn.laoshini.dk.util.StringUtil;
@@ -28,10 +29,10 @@ import static cn.laoshini.dk.dao.SqlBuilder.COMMA;
  * @author fagarine
  */
 public class PreparedStatementSqlBuilder {
+    public static final String QM = "?";
+
     private PreparedStatementSqlBuilder() {
     }
-
-    public static final String QM = "?";
 
     private static String getColumnName(Class<?> entityType, String fieldName) {
         return SqlBuilder.toColumnName(entityType, fieldName);
@@ -218,9 +219,9 @@ public class PreparedStatementSqlBuilder {
 
         Class<?> entityType = entity.getClass();
         Field[] fields = entityType.getDeclaredFields();
-        int count = 0;
+        int count = keys.size();
         for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers())) {
+            if (!Modifier.isStatic(field.getModifiers()) && !keys.contains(field.getName())) {
                 count++;
             }
         }
@@ -229,9 +230,11 @@ public class PreparedStatementSqlBuilder {
         StringBuilder conditionStr = new StringBuilder(keys.size() << 4);
 
         int[] types = new int[count];
-        List<Object> params = new ArrayList<>(count);
-        for (int i = 0; i < fields.length; i++) {
-            Field field = fields[i];
+        Object[] params = new Object[count];
+        int keyIndex = 0;
+        int valueIndex = 0;
+        int valueCount = count - keys.size();
+        for (Field field : fields) {
             if (Modifier.isStatic(field.getModifiers())) {
                 continue;
             }
@@ -239,23 +242,27 @@ public class PreparedStatementSqlBuilder {
             if (valueStr.length() > 0) {
                 valueStr.append(COMMA);
             }
-            types[i] = SqlBuilder.toJdbcType(field.getType());
-            params.add(getFieldValue(entity, field));
 
             String fieldName = field.getName();
             String columnName = getColumnName(entityType, fieldName);
             if (keys.contains(fieldName)) {
+                int index = keyIndex + valueCount;
+                params[index] = getFieldValue(entity, field);
+                types[index] = SqlBuilder.toJdbcType(field.getType());
                 if (conditionStr.length() > 0) {
                     conditionStr.append(" AND ");
                 }
                 conditionStr.append("`").append(columnName).append("`=").append(QM);
+                keyIndex++;
             } else {
+                types[valueIndex] = SqlBuilder.toJdbcType(field.getType());
+                params[valueIndex++] = getFieldValue(entity, field);
                 valueStr.append("`").append(columnName).append("`=").append(QM);
             }
         }
 
         String sql = updateSql.append(valueStr).append(" WHERE ").append(conditionStr).toString();
-        return new Tuple<>(sql, new Tuple<>(types, params));
+        return new Tuple<>(sql, new Tuple<>(types, Lists.newArrayList(params)));
     }
 
     /**

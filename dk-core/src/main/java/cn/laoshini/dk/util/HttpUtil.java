@@ -10,6 +10,8 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -18,10 +20,17 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * @author fagarine
  */
 public class HttpUtil {
-    private HttpUtil() {
+    private static final int TIME_OUT_MILLS = 5 * 1000;
+    private static final Map<String, String> JSON_CONTENT_HEADER;
+
+    static {
+        Map<String, String> header = new HashMap<>(1);
+        header.put("Content-Type", "application/json;charset=UTF-8");
+        JSON_CONTENT_HEADER = Collections.unmodifiableMap(header);
     }
 
-    private static final int TIME_OUT_MILLS = 5 * 1000;
+    private HttpUtil() {
+    }
 
     /**
      * 通过HTTP GET 发送请求
@@ -81,8 +90,7 @@ public class HttpUtil {
             responseBody = new String(outputStream.toByteArray(), UTF_8);
             outputStream.close();
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("sendGet exception");
+            LogUtil.error("Http Get Error:" + httpUrl + ", params:" + parameter, e);
         } finally {
             if (httpCon != null) {
                 httpCon.disconnect();
@@ -98,7 +106,7 @@ public class HttpUtil {
      * @param postBody 发送的内容
      * @return 返回HTTP SERVER的处理结果，如果发送失败，返回null
      */
-    public static String sentPost(String httpUrl, String postBody) {
+    public static String sendPost(String httpUrl, String postBody) {
         return sendPost(httpUrl, postBody, "UTF-8", null);
     }
 
@@ -110,7 +118,7 @@ public class HttpUtil {
      * @param encoding 指定字符编码类型
      * @return 返回HTTP SERVER的处理结果，如果发送失败，返回null
      */
-    public static String sentPostEncoding(String httpUrl, String postBody, String encoding) {
+    public static String sendPostEncoding(String httpUrl, String postBody, String encoding) {
         return sendPost(httpUrl, postBody, encoding, null);
     }
 
@@ -122,7 +130,7 @@ public class HttpUtil {
      * @param headerMap 增加的Http头信息
      * @return 返回HTTP SERVER的处理结果，如果发送失败，返回null
      */
-    public static String sentPost(String httpUrl, String postBody, Map<String, String> headerMap) {
+    public static String sendPost(String httpUrl, String postBody, Map<String, String> headerMap) {
         return sendPost(httpUrl, postBody, "UTF-8", headerMap);
     }
 
@@ -142,16 +150,14 @@ public class HttpUtil {
         try {
             url = new URL(httpUrl);
         } catch (MalformedURLException e) {
-            System.out.println("URL null");
-            e.printStackTrace();
+            LogUtil.error("URL null", e);
             return null;
         }
 
         try {
             httpCon = (HttpURLConnection) url.openConnection();
-        } catch (IOException e1) {
-            e1.printStackTrace();
-            System.out.println("openConnection exception");
+        } catch (IOException e) {
+            LogUtil.error("openConnection exception:" + httpUrl, e);
             return null;
         }
         if (httpCon == null) {
@@ -166,7 +172,7 @@ public class HttpUtil {
         try {
             httpCon.setRequestMethod("POST");
         } catch (ProtocolException e) {
-            e.printStackTrace();
+            LogUtil.error("post request exception:" + httpUrl, e);
             return null;
         }
 
@@ -179,7 +185,7 @@ public class HttpUtil {
         try {
             output = httpCon.getOutputStream();
         } catch (IOException e) {
-            e.printStackTrace();
+            LogUtil.error("post request exception:" + httpUrl, e);
             return null;
         }
         try {
@@ -187,7 +193,7 @@ public class HttpUtil {
                 output.write(postBody.getBytes(encoding));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LogUtil.error("post request write exception:" + httpUrl, e);
             return null;
         }
         try {
@@ -202,8 +208,8 @@ public class HttpUtil {
         InputStream in;
         try {
             in = httpCon.getInputStream();
-        } catch (IOException e1) {
-            e1.printStackTrace();
+        } catch (IOException e) {
+            LogUtil.error("post request read exception:" + httpUrl, e);
             return null;
         }
         /*
@@ -264,4 +270,14 @@ public class HttpUtil {
         return responseBody;
     }
 
+    /**
+     * 使用HTTP POST 发送JSON字符串（json作为请求体发送）
+     *
+     * @param httpUrl 发送的地址
+     * @param jsonString JSON字符串
+     * @return 返回HTTP SERVER的处理结果，如果发送失败，返回null
+     */
+    public static String sendJsonPost(String httpUrl, String jsonString) {
+        return sendPost(httpUrl, jsonString, "UTF-8", JSON_CONTENT_HEADER);
+    }
 }

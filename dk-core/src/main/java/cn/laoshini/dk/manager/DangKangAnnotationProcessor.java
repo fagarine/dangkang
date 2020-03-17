@@ -36,7 +36,7 @@ import cn.laoshini.dk.util.SpringUtils;
 @Component
 public class DangKangAnnotationProcessor implements ApplicationContextAware, InitializingBean {
 
-    @Value("${dangKangExternalProperties.packagePrefix:#{dangKangExternalProperties.packagePrefix}}")
+    @Value("${dk.ext.package-prefix:[]}")
     private List<String> packagePrefix;
 
     private String[] packages;
@@ -65,6 +65,11 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
 
         // 查找系统中的Spring托管对象
         findAndRegisterSpringBeans(classLoader, packages);
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        ClassLoader classLoader = DangKangAnnotationProcessor.class.getClassLoader();
 
         // 查找并注册具有多实现的功能
         VariousWaysManager.findAndRegisterVariousWaysClasses(classLoader, packages);
@@ -72,13 +77,11 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
         // 查找并注册系统中的资源持有者
         findAndRegisterResourceHolders(classLoader, packages);
 
-        // 可配置功能对象注入，一定要保证可配置功能的注入，早于对可配置功能依赖的调用
-        ConfigurableFunctionInjector.findAndRejectFunctionDependencies();
-    }
+        // 加载外置模块
+        ModuleManager.initModuleSystem();
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        ClassLoader classLoader = DangKangAnnotationProcessor.class.getClassLoader();
+        // 可配置功能对象注入，一定要保证可配置功能的注入，早于对可配置功能依赖的调用
+        ConfigurableFunctionInjector.injectWaitBeans();
 
         // 查找并注册消息类
         findAndRegisterMessage(classLoader);
@@ -127,8 +130,8 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
         if (Registers.getMessageRegisters().isEmpty()) {
             Registers.addMessageRegister(Registers.dangKangCustomMessageRegister());
         }
-        for (IMessageRegister register : Registers.getMessageRegisters()) {
-            register.action(classLoader);
+        for (IMessageRegister messageRegister : Registers.getMessageRegisters()) {
+            messageRegister.action(classLoader);
         }
     }
 
@@ -136,8 +139,8 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
         if (Registers.getDtoRegisters().isEmpty()) {
             Registers.addDtoRegister(Registers.dangKangCustomDtoRegister());
         }
-        for (IMessageDtoRegister register : Registers.getDtoRegisters()) {
-            register.action(classLoader);
+        for (IMessageDtoRegister dtoRegister : Registers.getDtoRegisters()) {
+            dtoRegister.action(classLoader);
         }
     }
 
@@ -150,8 +153,8 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
         if (Registers.getHandlerRegisters().isEmpty()) {
             Registers.addHandlerRegister(Registers.dangKangMessageHandlerRegister());
         }
-        for (IMessageHandlerRegister register : Registers.getHandlerRegisters()) {
-            register.action(classLoader);
+        for (IMessageHandlerRegister handlerRegister : Registers.getHandlerRegisters()) {
+            handlerRegister.action(classLoader);
         }
     }
 }

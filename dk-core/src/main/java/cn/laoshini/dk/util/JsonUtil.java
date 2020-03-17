@@ -2,10 +2,12 @@ package cn.laoshini.dk.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
 import com.alibaba.fastjson.JSON;
+import org.springframework.core.io.InputStreamSource;
 
 import cn.laoshini.dk.domain.common.ConstTable;
 import cn.laoshini.dk.domain.common.MultiConstTableContent;
@@ -29,11 +31,11 @@ public class JsonUtil {
     }
 
     public static String readJsonFileToString(String filepath) {
-        String jsonStr = null;
+        String jsonStr;
         try {
             jsonStr = FileUtil.readFileToString(getJsonFileOnCheck(filepath));
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new BusinessException("json.read.error", String.format("JSON文件[%s]数据读取出错", filepath), e);
         }
 
         if (StringUtil.isEmptyString(jsonStr)) {
@@ -88,6 +90,34 @@ public class JsonUtil {
      */
     public static <E> List<E> readBeanList(String filepath, Class<E> entityType) {
         String jsonStr = readJsonFileToString(filepath);
+        return JSON.parseArray(jsonStr, entityType);
+    }
+
+    public static <E> List<E> readBeanList(InputStream in, Class<E> entityType) {
+        String jsonStr;
+        try {
+            jsonStr = FileUtil.readFileToString(in);
+        } catch (IOException e) {
+            throw new BusinessException("json.read.error", "JSON数据读取出错", e);
+        }
+
+        if (StringUtil.isEmptyString(jsonStr)) {
+            throw new BusinessException("json.file.empty", "JSON内容为空");
+        }
+        return JSON.parseArray(jsonStr, entityType);
+    }
+
+    public static <E> List<E> readBeanList(InputStreamSource in, Class<E> entityType) {
+        String jsonStr;
+        try {
+            jsonStr = FileUtil.readFileToString(in.getInputStream());
+        } catch (IOException e) {
+            throw new BusinessException("json.read.error", "JSON数据读取出错", e);
+        }
+
+        if (StringUtil.isEmptyString(jsonStr)) {
+            throw new BusinessException("json.file.empty", "JSON内容为空");
+        }
         return JSON.parseArray(jsonStr, entityType);
     }
 

@@ -54,8 +54,7 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
         accepterGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
 
-        LogUtil.info("TCP游戏 [{}] 开始启动...", getGameName());
-
+        LogUtil.start("TCP游戏 [{}] 开始启动...", getGameName());
         try {
             ServerBootstrap b = new ServerBootstrap();
             trafficShapingHandler = new GlobalTrafficShapingHandler(workerGroup, 5000L);
@@ -74,7 +73,10 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
             b.childHandler(newBusinessHandler());
 
             Channel channel = b.bind(port).sync().channel();
-            LogUtil.start("TCP游戏 [{}] 成功绑定端口 [{}]，启动成功", getGameName(), port);
+            LogUtil.start("TCP游戏 [{}] 成功绑定端口 [{}]", getGameName(), port);
+
+            // 执行游戏服启动成功后的逻辑
+            serverStartsSuccessful();
 
             channel.closeFuture().sync();
         } catch (Exception e) {
@@ -105,18 +107,48 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
         };
     }
 
+    private ByteToMessageDecoder newMessageDecoder() {
+        return new ByteToMessageDecoder() {
+            @Override
+            protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
+                out.add(getGameServerRegister().decoder().decode(in, subject));
+            }
+        };
+    }
+
+    private MessageToByteEncoder<M> newMessageEncoder() {
+        return new MessageToByteEncoder<M>() {
+            @Override
+            protected void encode(ChannelHandlerContext ctx, M msg, ByteBuf out) throws Exception {
+                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
+                ByteBuf buf = getGameServerRegister().encoder().encode(msg, subject);
+                out.writeBytes(buf);
+            }
+        };
+    }
+
+    @Override
+    protected void shutdown0() {
+        accepterGroup.shutdownGracefully();
+        super.shutdown0();
+    }
+
     private class TcpChannelReaderHandler extends SimpleChannelInboundHandler<M> {
 
         @Override
         protected void channelRead0(ChannelHandlerContext ctx, M msg) {
-            if (shutdown.get()) {
+            if (isShutdown()) {
                 return;
             }
 
-            if (pause.get()) {
+            if (isPaused()) {
                 // 业务暂停时，停止接受客户端消息，或返回提示信息，或考虑其他的处理方式
+                sendPauseMessage(getSessionByChannel(ctx.channel()));
                 return;
             }
+
+            LogUtil.c2sMessage("读取到tcp消息:" + msg);
             // 消息分发
             dispatchMessage(ctx.channel(), msg);
         }
@@ -186,33 +218,5 @@ class InnerNettyTcpGameServer<S, M> extends AbstractInnerNettyGameServer<S, M> {
                 ctx.close();
             }
         }
-    }
-
-    private ByteToMessageDecoder newMessageDecoder() {
-        return new ByteToMessageDecoder() {
-            @Override
-            protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
-                out.add(getGameServerRegister().decoder().decode(in, subject));
-            }
-        };
-    }
-
-    private MessageToByteEncoder<M> newMessageEncoder() {
-        return new MessageToByteEncoder<M>() {
-            @Override
-            protected void encode(ChannelHandlerContext ctx, M msg, ByteBuf out) throws Exception {
-                GameSubject subject = getInnerSessionByChannel(ctx.channel()).getSubject();
-                ByteBuf buf = getGameServerRegister().encoder().encode(msg, subject);
-                out.writeBytes(buf);
-                ctx.flush();
-            }
-        };
-    }
-
-    @Override
-    protected void shutdown0() {
-        accepterGroup.shutdownGracefully();
-        super.shutdown0();
     }
 }

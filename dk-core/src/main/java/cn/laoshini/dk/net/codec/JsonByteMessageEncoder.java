@@ -1,6 +1,6 @@
 package cn.laoshini.dk.net.codec;
 
-import cn.laoshini.dk.net.msg.AbstractMessage;
+import cn.laoshini.dk.domain.msg.AbstractMessage;
 import cn.laoshini.dk.util.MessageUtil;
 
 /**

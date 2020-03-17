@@ -44,10 +44,6 @@ public enum ResourcesHolder {
         return (T) getResources().remove(key);
     }
 
-    public static void setPackagePrefixes(Collection<String> packagePrefixes) {
-        put(Constants.PACKAGE_PREFIXES_RESOURCE_KEY, packagePrefixes);
-    }
-
     public static String[] addPackagePrefixes(String[] packagePrefixes) {
         Collection<String> prefixes = get(Constants.PACKAGE_PREFIXES_RESOURCE_KEY);
         if (prefixes == null) {
@@ -68,6 +64,10 @@ public enum ResourcesHolder {
         return get(Constants.PACKAGE_PREFIXES_RESOURCE_KEY);
     }
 
+    public static void setPackagePrefixes(Collection<String> packagePrefixes) {
+        put(Constants.PACKAGE_PREFIXES_RESOURCE_KEY, packagePrefixes);
+    }
+
     public static String[] getPackagePrefixesAsArray() {
         Collection<String> prefixes = get(Constants.PACKAGE_PREFIXES_RESOURCE_KEY);
         if (prefixes == null) {
@@ -77,27 +77,35 @@ public enum ResourcesHolder {
         return prefixes.toArray(new String[0]);
     }
 
-    public static void setSpringLocations(String[] springLocations) {
-        put(Constants.SPRING_LOCATIONS_RESOURCE_KEY, springLocations);
-    }
-
     public static String[] getSpringLocations() {
         return get(Constants.SPRING_LOCATIONS_RESOURCE_KEY);
     }
 
-    public static void setStartArgs(String[] startArgs) {
-        put(Constants.START_ARGS_RESOURCE_KEY, startArgs);
+    public static void setSpringLocations(String[] springLocations) {
+        put(Constants.SPRING_LOCATIONS_RESOURCE_KEY, springLocations);
     }
 
     public static String[] getStartArgs() {
         return get(Constants.START_ARGS_RESOURCE_KEY);
     }
 
-    public static void setPropertyLocations(String[] propertyLocations) {
-        put(Constants.PROPERTY_RESOURCE_KEY, propertyLocations);
+    public static void setStartArgs(String[] startArgs) {
+        put(Constants.START_ARGS_RESOURCE_KEY, startArgs);
     }
 
     public static String[] getPropertyLocations() {
         return get(Constants.PROPERTY_RESOURCE_KEY);
+    }
+
+    public static void setPropertyLocations(String[] propertyLocations) {
+        put(Constants.PROPERTY_RESOURCE_KEY, propertyLocations);
+    }
+
+    public static String getConfigClientFile() {
+        return get(Constants.CONFIG_CLIENT_FILE_RESOURCE_KEY);
+    }
+
+    public static void setConfigClientFile(String configClientFile) {
+        put(Constants.CONFIG_CLIENT_FILE_RESOURCE_KEY, configClientFile);
     }
 }

@@ -7,13 +7,13 @@ import java.util.Arrays;
 import cn.laoshini.dk.constant.GameCodeEnum;
 import cn.laoshini.dk.constant.GameConstant;
 import cn.laoshini.dk.domain.GameSubject;
+import cn.laoshini.dk.domain.msg.ReqMessage;
 import cn.laoshini.dk.exception.BusinessException;
 import cn.laoshini.dk.exception.MessageException;
 import cn.laoshini.dk.net.MessageDtoClassHolder;
 import cn.laoshini.dk.net.msg.ICustomDto;
 import cn.laoshini.dk.net.msg.ICustomMessage;
 import cn.laoshini.dk.net.msg.ReqCustomMessage;
-import cn.laoshini.dk.net.msg.ReqMessage;
 import cn.laoshini.dk.util.ByteMessageUtil;
 import cn.laoshini.dk.util.LogUtil;
 
@@ -27,7 +27,7 @@ public class CustomByteMessageCodec implements IByteMessageCodec<ICustomMessage<
      */
     public static final int CUSTOM_MSG_OFFSET =
             GameConstant.MESSAGE_LENGTH_OFFSET + GameConstant.MESSAGE_CHECK_CODE_OFFSET
-                    + GameConstant.MESSAGE_ID_OFFSET;
+            + GameConstant.MESSAGE_ID_OFFSET;
 
     /**
      * 缺省消息长度：1KB
@@ -38,11 +38,10 @@ public class CustomByteMessageCodec implements IByteMessageCodec<ICustomMessage<
      * 最大允许消息长度：32M
      */
     public static final int MAX_CAPACITY = 1024 << 15;
+    private static CustomByteMessageCodec ins;
 
     private CustomByteMessageCodec() {
     }
-
-    private static CustomByteMessageCodec ins;
 
     public static CustomByteMessageCodec getInstance() {
         if (ins == null) {

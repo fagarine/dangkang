@@ -1,5 +1,6 @@
 package cn.laoshini.dk.net.session;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,7 +29,9 @@ public class NettyHttpSession extends NettySession {
 
     private String uri;
 
-    private Map<String, String> headers;
+    private String method;
+
+    private Map<String, String> headers = new HashMap<>();
 
     public NettyHttpSession(Channel channel, boolean isKeepAlive) {
         super(channel);
@@ -44,10 +47,10 @@ public class NettyHttpSession extends NettySession {
         response.headers().setInt(HttpHeaderNames.CONTENT_LENGTH, response.content().readableBytes());
 
         if (!keepAlive) {
-            channel.write(response).addListener(ChannelFutureListener.CLOSE);
+            channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
         } else {
             response.headers().set(CONNECTION, KEEP_ALIVE);
-            channel.write(response);
+            channel.writeAndFlush(response);
         }
     }
 
@@ -67,6 +70,14 @@ public class NettyHttpSession extends NettySession {
         this.uri = uri;
     }
 
+    public String getMethod() {
+        return method;
+    }
+
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
     public Map<String, String> getHeaders() {
         return headers;
     }
@@ -75,5 +86,14 @@ public class NettyHttpSession extends NettySession {
         for (Map.Entry<String, String> entry : entries) {
             headers.put(entry.getKey(), entry.getValue());
         }
+    }
+
+    @Override
+    public void clear() {
+        super.clear();
+        uri = null;
+        method = null;
+        headers.clear();
+        headers = null;
     }
 }

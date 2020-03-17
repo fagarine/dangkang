@@ -1,5 +1,6 @@
 package cn.laoshini.dk.util;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -7,12 +8,15 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.lang.reflect.WildcardType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import cn.laoshini.dk.exception.BusinessException;
 
@@ -22,40 +26,123 @@ import cn.laoshini.dk.exception.BusinessException;
 public class ReflectUtil {
 
     /**
-     * 获取类来自于指定父类或接口的泛型类型
+     * 获取类来自于指定父类或接口的泛型类型（Type[]形式返回，带有泛型数据详细信息，需要自己根据此做进一步分析）
      *
      * @param clazz 子类
      * @param superClass 父类或接口类
-     * @param <SuperType> 父类或接口类
+     * @param <SuperType> 父类或接口的类型
      * @return 该方法可能返回null
      */
-    public static <SuperType> Type getAssignedInterfaceGenericType(Class<? extends SuperType> clazz,
+    public static <SuperType> Type[] getSuperClassGenericTypes(Class<? extends SuperType> clazz,
             Class<SuperType> superClass) {
         ParameterizedType parameterizedType = null;
-        Type superType = clazz.getGenericSuperclass();
-        if (superType instanceof ParameterizedType && superClass.isAssignableFrom(clazz.getSuperclass())) {
-            parameterizedType = (ParameterizedType) superType;
-        } else {
-            for (Class<?> classInterface : clazz.getInterfaces()) {
-                if (superClass.isAssignableFrom(classInterface)) {
-                    for (Type type : clazz.getGenericInterfaces()) {
-                        if (type instanceof ParameterizedType) {
-                            ParameterizedType pt = (ParameterizedType) type;
-                            if (classInterface.equals(pt.getRawType())) {
-                                parameterizedType = pt;
-                            }
+        for (Class<?> classInterface : clazz.getInterfaces()) {
+            if (superClass.isAssignableFrom(classInterface)) {
+                for (Type type : clazz.getGenericInterfaces()) {
+                    if (type instanceof ParameterizedType) {
+                        ParameterizedType pt = (ParameterizedType) type;
+                        if (classInterface.equals(pt.getRawType())) {
+                            parameterizedType = pt;
                         }
                     }
                 }
             }
         }
 
+        if (parameterizedType == null) {
+            if (superClass.isAssignableFrom(clazz.getSuperclass())) {
+                Type superType = clazz.getGenericSuperclass();
+                if (superType instanceof ParameterizedType) {
+                    parameterizedType = (ParameterizedType) superType;
+                } else {
+                    return getSuperClassGenericTypes((Class<? extends SuperType>) clazz.getSuperclass(), superClass);
+                }
+            }
+        }
+
         if (parameterizedType != null) {
-            Type[] types = parameterizedType.getActualTypeArguments();
-            Type type = types.length > 0 ? types[0] : null;
-            //            if (type instanceof ParameterizedType) {
-            return type;
-            //            }
+            return parameterizedType.getActualTypeArguments();
+        }
+        return null;
+    }
+
+    /**
+     * 获取类来自于指定父类或接口的泛型类型（Class[]形式返回，适用于在父类或接口的定义中，包含多个泛型类型的类，比如Map）
+     *
+     * @param clazz 子类
+     * @param superClass 父类或接口类
+     * @param <SuperType> 父类或接口的类型
+     * @return 该方法可能返回null
+     */
+    public static <SuperType> Class[] getSuperClassGenericClasses(Class<? extends SuperType> clazz,
+            Class<SuperType> superClass) {
+        Type[] genericTypes = getSuperClassGenericTypes(clazz, superClass);
+        if (CollectionUtil.isEmpty(genericTypes)) {
+            return null;
+        }
+
+        Class[] classes = new Class[genericTypes.length];
+        for (int i = 0; i < genericTypes.length; i++) {
+            classes[i] = genericTypeToClass(genericTypes[i]);
+        }
+        return classes;
+    }
+
+    /**
+     * 获取类来自于指定父类或接口的泛型类型（Class形式返回，适用于只包含父类或接口类只定义了单个泛型的类，比如List）
+     *
+     * @param clazz 子类
+     * @param superClass 父类或接口类
+     * @param <SuperType> 父类或接口的类型
+     * @return 该方法可能返回null
+     */
+    public static <SuperType> Class<?> getSuperClassGenericClass(Class<? extends SuperType> clazz,
+            Class<SuperType> superClass) {
+        Type[] genericTypes = getSuperClassGenericTypes(clazz, superClass);
+        if (CollectionUtil.isEmpty(genericTypes)) {
+            return null;
+        }
+
+        return genericTypeToClass(genericTypes[0]);
+    }
+
+    /**
+     * 根据传入的泛型类描述信息，获取其直接泛型类型
+     *
+     * @param genericType 描述泛型信息的类型对象
+     * @return 返回获取到的直接泛型类型，该方法可能返回null
+     */
+    public static Class<?> genericTypeToClass(Type genericType) {
+        Class<?> clazz = null;
+        if (genericType instanceof Class) {
+            clazz = (Class) genericType;
+        } else if (genericType instanceof WildcardType) {
+            WildcardType wildcardType = (WildcardType) genericType;
+            if (CollectionUtil.isNotEmpty(wildcardType.getLowerBounds())) {
+                Type type = wildcardType.getLowerBounds()[0];
+                clazz = type instanceof Class ? (Class) type : null;
+            } else if (CollectionUtil.isNotEmpty(wildcardType.getUpperBounds())) {
+                Type type = wildcardType.getUpperBounds()[0];
+                clazz = type instanceof Class ? (Class) type : null;
+            }
+        } else if (genericType instanceof ParameterizedType) {
+            Type rawType = ((ParameterizedType) genericType).getRawType();
+            clazz = rawType instanceof Class ? (Class) rawType : null;
+        }
+        return clazz;
+    }
+
+    /**
+     * 获取Field的泛型类型（适用于只有一个泛型类型的Field）
+     *
+     * @param field field
+     * @return 如果获取不到，将会返回null
+     */
+    public static Class getFieldGenericType(Field field) {
+        if (field.getGenericType() instanceof ParameterizedType) {
+            ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
+            Type genericType = parameterizedType.getActualTypeArguments()[0];
+            return genericTypeToClass(genericType);
         }
         return null;
     }
@@ -65,12 +152,24 @@ public class ReflectUtil {
             return null;
         }
 
+        return getFieldGenericType(field);
+    }
+
+    /**
+     * 获取Field的泛型类型（适用于包含多个泛型类型的Field）
+     *
+     * @param field field
+     * @return 如果获取不到，将会返回null
+     */
+    public static Class[] getFieldGenericTypes(Field field) {
         if (field.getGenericType() instanceof ParameterizedType) {
             ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-            Type genericType = parameterizedType.getActualTypeArguments()[0];
-            if (genericType instanceof Class) {
-                return (Class) genericType;
+            Type[] genericTypes = parameterizedType.getActualTypeArguments();
+            Class[] classes = new Class[genericTypes.length];
+            for (int i = 0; i < genericTypes.length; i++) {
+                classes[i] = genericTypeToClass(genericTypes[i]);
             }
+            return classes;
         }
         return null;
     }
@@ -80,21 +179,7 @@ public class ReflectUtil {
             return null;
         }
 
-        if (field.getGenericType() instanceof ParameterizedType) {
-            ParameterizedType parameterizedType = (ParameterizedType) field.getGenericType();
-            Type[] types = parameterizedType.getActualTypeArguments();
-            Class[] genericTypes = new Class[types.length];
-            for (int i = 0; i < types.length; i++) {
-                Type type = types[i];
-                if (type instanceof Class) {
-                    genericTypes[i] = (Class) type;
-                } else {
-                    return null;
-                }
-            }
-            return genericTypes;
-        }
-        return null;
+        return getFieldGenericTypes(field);
     }
 
     /**
@@ -145,7 +230,7 @@ public class ReflectUtil {
         return null;
     }
 
-    private static Class<?>[] getParamClasses(Object[] params) {
+    public static Class<?>[] getParamClasses(Object[] params) {
         Class<?>[] paramClasses;
         if (CollectionUtil.isNotEmpty(params)) {
             paramClasses = new Class<?>[params.length];
@@ -157,35 +242,6 @@ public class ReflectUtil {
             paramClasses = new Class<?>[0];
         }
         return paramClasses;
-    }
-
-    /**
-     * 获取类的无参构造方法
-     *
-     * @param clazz 类
-     * @return 返回类的无参构造器
-     */
-    protected Constructor<?> getNoArgsConstructor(Class<?> clazz) {
-        Constructor<?> constructor;
-        try {
-            constructor = clazz.getConstructor();
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException(clazz.getName() + "类没有提供一个无参的构造方法", e);
-        }
-        return constructor;
-    }
-
-    protected Object newInstance(Constructor<?> constructor) {
-        if (constructor == null) {
-            throw new IllegalArgumentException("构造器不能为空");
-        }
-
-        try {
-            return constructor.newInstance();
-        } catch (Exception e) {
-            String className = constructor.getDeclaringClass().getName();
-            throw new IllegalArgumentException(className + "类没有提供一个公共的无参构造方法", e);
-        }
     }
 
     public static List<String> getClassAllMethod(Class<?> clazz) {
@@ -320,7 +376,7 @@ public class ReflectUtil {
     /**
      * 反射执行方法（忽略方法的访问限制）
      *
-     * @param obj 对象
+     * @param obj 对象或类
      * @param methodName 方法名
      * @param params 传入参数
      * @return 返回执行结果
@@ -329,7 +385,11 @@ public class ReflectUtil {
      */
     public static Object invokeMethodAnyway(Object obj, String methodName, Object... params)
             throws NoSuchMethodException, InvocationTargetException {
-        Method m = obj.getClass().getDeclaredMethod(methodName, getParamClasses(params));
+        Class<?> clazz = obj.getClass();
+        if (obj instanceof Class) {
+            clazz = (Class<?>) obj;
+        }
+        Method m = clazz.getDeclaredMethod(methodName, getParamClasses(params));
         boolean access = m.isAccessible();
         m.setAccessible(true);
         try {
@@ -622,6 +682,57 @@ public class ReflectUtil {
         } finally {
             sourceField.setAccessible(sourceAccessible);
             targetField.setAccessible(targetAccessible);
+        }
+    }
+
+    public static List<Field> getFields(Class<?> clazz, Predicate<Field> fieldFilter) {
+        if (clazz == null || fieldFilter == null) {
+            return Collections.emptyList();
+        }
+
+        List<Field> fields = new LinkedList<>();
+        for (Field field : clazz.getDeclaredFields()) {
+            if (fieldFilter.test(field)) {
+                fields.add(field);
+            }
+        }
+        return fields;
+    }
+
+    public static List<Field> getAssignedAnnotationFields(Class<?> clazz, Class<? extends Annotation> annotationClass) {
+        if (clazz == null || annotationClass == null) {
+            return Collections.emptyList();
+        }
+
+        return getFields(clazz, f -> f.isAnnotationPresent(annotationClass));
+    }
+
+    /**
+     * 获取类的无参构造方法
+     *
+     * @param clazz 类
+     * @return 返回类的无参构造器
+     */
+    protected Constructor<?> getNoArgsConstructor(Class<?> clazz) {
+        Constructor<?> constructor;
+        try {
+            constructor = clazz.getConstructor();
+        } catch (NoSuchMethodException e) {
+            throw new IllegalArgumentException(clazz.getName() + "类没有提供一个无参的构造方法", e);
+        }
+        return constructor;
+    }
+
+    protected Object newInstance(Constructor<?> constructor) {
+        if (constructor == null) {
+            throw new IllegalArgumentException("构造器不能为空");
+        }
+
+        try {
+            return constructor.newInstance();
+        } catch (Exception e) {
+            String className = constructor.getDeclaringClass().getName();
+            throw new IllegalArgumentException(className + "类没有提供一个公共的无参构造方法", e);
         }
     }
 }

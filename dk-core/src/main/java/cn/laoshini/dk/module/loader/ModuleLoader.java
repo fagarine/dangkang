@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
@@ -51,6 +52,16 @@ public class ModuleLoader extends ModuleLoaderContext {
     private long lastModifyTime;
 
     /**
+     * 记录最后一次加载完成时间
+     */
+    private Date lastLoadedTime;
+
+    /**
+     * 记录最后一次执行出错时间
+     */
+    private long lastFailTime;
+
+    /**
      * 记录模块中已加载到Spring容器中的配置名称
      */
     private List<String> propertySourceNames;
@@ -59,6 +70,8 @@ public class ModuleLoader extends ModuleLoaderContext {
      * 当康系统内部功能聚合注册表
      */
     private AggregateModuleRegistry moduleRegistry;
+
+    private boolean success;
 
     private ModuleLoader(File moduleFile, URLClassLoader parentClassLoader) throws MalformedURLException {
         super(new ModuleClassLoader(new URL[] { moduleFile.toURI().toURL() }, parentClassLoader), moduleFile);
@@ -104,9 +117,18 @@ public class ModuleLoader extends ModuleLoaderContext {
         // 执行正常的加载逻辑
         loadModule();
 
-        if (oldModuleLoader != null) {
-            oldModuleLoader.cleanUp();
-            oldModuleLoader = null;
+        // 已执行注册操作的，暂不提供回滚
+        if (success || moduleRegistry.isRegistered()) {
+            if (oldModuleLoader != null) {
+                oldModuleLoader.cleanUp();
+                oldModuleLoader = null;
+            }
+        } else {
+            // 回滚
+            rollback();
+            if (oldModuleLoader != null) {
+                oldModuleLoader.rollback();
+            }
         }
     }
 
@@ -116,6 +138,8 @@ public class ModuleLoader extends ModuleLoaderContext {
     public void loadModule() {
         // 读取jar包中的配置信息
         readJarFile();
+
+        lastLoadedTime = new Date();
     }
 
     /**
@@ -125,17 +149,22 @@ public class ModuleLoader extends ModuleLoaderContext {
         try (JarFile jarFile = new JarFile(moduleFile)) {
             SpringContextHolder.setSpringCurrentClassLoader(getClassLoader());
 
-            // 在jar包中查找配置文件并读取配置信息
-            readConfigFromPropertiesFile(jarFile);
-
             // 执行功能注册逻辑
             AggregateModuleRegistry oldRegistry = oldModuleLoader == null ? null : oldModuleLoader.moduleRegistry;
             moduleRegistry = AggregateModuleRegistry.newInstance(this, oldRegistry);
+            // 预备注册，做一些准备与验证操作
+            moduleRegistry.prepareRegister(jarFile);
+
+            // 在jar包中查找配置文件并读取配置信息
+            readConfigFromPropertiesFile(jarFile);
+
+            // 正式注册
             moduleRegistry.register(jarFile);
 
             LogUtil.start("成功加载模块: [{}]", getModuleName());
 
             lastModifyTime = moduleFile.lastModified();
+            success = true;
         } catch (IOException e) {
             LogUtil.error(String.format("读取模块文件出错: %s", moduleFile.getPath()), e);
         } catch (Throwable t) {
@@ -219,9 +248,21 @@ public class ModuleLoader extends ModuleLoaderContext {
      * 预备清空数据
      */
     public void prepareCleanUp() {
-        SpringContextHolder.setSpringCurrentClassLoader(getClassLoader());
-        moduleRegistry.prepareUnregister();
-        SpringContextHolder.resetSpringCurrentClassLoader();
+        try {
+            SpringContextHolder.setSpringCurrentClassLoader(getClassLoader());
+            moduleRegistry.prepareUnregister();
+        } finally {
+            SpringContextHolder.resetSpringCurrentClassLoader();
+        }
+    }
+
+    public void rollback() {
+        try {
+            SpringContextHolder.setSpringCurrentClassLoader(getClassLoader());
+            moduleRegistry.rollback();
+        } finally {
+            SpringContextHolder.resetSpringCurrentClassLoader();
+        }
     }
 
     /**
@@ -255,11 +296,27 @@ public class ModuleLoader extends ModuleLoaderContext {
         return lastModifyTime;
     }
 
+    public Date getLastLoadedTime() {
+        return lastLoadedTime;
+    }
+
     public ModuleLoader getOldModuleLoader() {
         return oldModuleLoader;
     }
 
     public void setOldModuleLoader(ModuleLoader oldModuleLoader) {
         this.oldModuleLoader = oldModuleLoader;
+    }
+
+    public boolean isSuccess() {
+        return success || moduleRegistry.isRegistered();
+    }
+
+    public long getLastFailTime() {
+        return lastFailTime;
+    }
+
+    public void setLastFailTime(long lastFailTime) {
+        this.lastFailTime = lastFailTime;
     }
 }
