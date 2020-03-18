@@ -30,6 +30,10 @@ dangkang（当康），当康名字来源于《山海经》中的瑞兽，“﹝
 - 提供UI操作界面
 - 基于表达式或脚本的业务代码解释和执行，为不熟悉服务端开发的开发者提供支持
 
+### 项目链接
+- [github链接](https://github.com/fagarine/dangkang)
+- [码云链接](https://gitee.com/fagarine/dangkang)
+
 ## 项目说明
 ### 项目结构
 ```text
@@ -83,22 +87,42 @@ dangkang
     - 提供一些非必要功能的独立实现
 
 ## 使用示例
-[点击前往示例项目](https://github.com/fagarine/dk-game-example)
+### 示例项目链接
+- [github链接](https://github.com/fagarine/dk-game-example)
+- [码云链接](https://gitee.com/fagarine/dk-game-example)
 
 ### 快速启动
-引入当康项目的github仓库
-```xml
-<repositories>
-    <repository>
-        <id>dangkang-repo</id>
-        <url>https://raw.github.com/fagarine/mvn-repo/master/</url>
-        <snapshots>
-            <enabled>true</enabled>
-            <updatePolicy>always</updatePolicy>
-        </snapshots>
-    </repository>
-</repositories>
-```
+引入当康项目的maven仓库:
+- github仓库
+    ```xml
+    <repositories>
+        <repository>
+            <id>dangkang-repo</id>
+            <url>https://raw.github.com/fagarine/mvn-repo/master/</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+    ```
+- 码云仓库
+    ```xml
+    <repositories>
+        <repository>
+            <id>dangkang-repo</id>
+            <url>https://gitee.com/fagarine/mvn-repo/raw/master/releases/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+    ```
+
 引入项目依赖
 ```xml
 <dependency>
