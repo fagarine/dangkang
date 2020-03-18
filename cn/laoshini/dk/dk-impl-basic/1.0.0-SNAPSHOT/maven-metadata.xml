@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata modelVersion="1.1.0">
+  <groupId>cn.laoshini.dk</groupId>
+  <artifactId>dk-impl-basic</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <versioning>
+    <snapshot>
+      <timestamp>20200318.015113</timestamp>
+      <buildNumber>2</buildNumber>
+    </snapshot>
+    <lastUpdated>20200318015113</lastUpdated>
+    <snapshotVersions>
+      <snapshotVersion>
+        <extension>pom</extension>
+        <value>1.0.0-20200318.015113-2</value>
+        <updated>20200318015113</updated>
+      </snapshotVersion>
+    </snapshotVersions>
+  </versioning>
+</metadata>
