@@ -89,7 +89,7 @@ dangkang
 <repositories>
     <repository>
         <id>dangkang-repo</id>
-        <url>https://raw.github.com/fagarine/dangkang/mvn-repo</url>
+        <url>https://raw.github.com/fagarine/mvn-repo/master/</url>
         <snapshots>
             <enabled>true</enabled>
             <updatePolicy>always</updatePolicy>
