@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>dk-impl-basic</artifactId>
+        <groupId>cn.laoshini.dk</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>dk-db-id-incrementer</artifactId>
+    <description>
+        使用数据库实现的id自增器（包含关系数据库和键值对数据库两者形式，本项目在使用时需要额外添加数据库相关依赖）
+
+        注意：本项目功能的实现依赖于数据库，如果找不到数据库相关依赖，将导致服务不可用！
+
+        如果你使用关系数据库，则依赖于DataSource对象，你需要向Spring容器中添加DataSource对象，
+        如你的项目中使用了Spring，且在Spring配置文件中添加了DataSource配置信息，则系统可以找到该对象，
+        如果你的项目中没有使用Spring，则你需要通过手动调用 cn.laoshini.dk.util.SpringUtils.registerSpringBean()方法将DataSource对象注入容器中。
+
+        如果你使用键值对数据库，则依赖于IPairDbDao的实现对象，该方式只是一种备选，不推荐使用。
+
+        如果你是一个服务器编程方面的新手，你的项目暂时数据库流量很低，则推荐你添加以下项目依赖：
+        cn.laoshini.dk:dk-basic-da
+        该项目已提供了基础的数据库访问功能，可直接使用。
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.laoshini.dk</groupId>
+            <artifactId>dk-core</artifactId>
+            <version>${dangkang.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
