@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>dk-impl-basic</artifactId>
+        <groupId>cn.laoshini.dk</groupId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>dk-basic-da</artifactId>
+    <description>
+        提供数据访问相关功能的基础实现，本项目中实现了基本的JDBC功能，通过添加本项目依赖，
+        可以通过注入类：cn.laoshini.dk.dao.IDefaultDao ，通过IDefaultDao组件直接访问数据库，
+        由于在本项目中，IDefaultDao的实现类添加了@Component注解，通过Spring的依赖注入方式或当康系统提供的依赖注入方式，都可以成功注入对象。
+
+        注意：如果你要通过本项目提供的功能，连接关系数据库，则需要配置关系数据库相关配置项参数，
+        具体配置项信息详见：cn.laoshini.dk.dao.InnerGameDataSourceConfig 类；
+        如果你没有配置这些配置项参数，则系统默认你想要使用的是键值对数据库，本项目提供了LevelDB，可以直接使用；
+        本项目约束了你只能在两种数据库种选择一种使用，如果你想要两种数据库同时使用，则该项目无法提供。
+
+        如果你既想要使用键值对数据，又不想使用本项目提供的LevelDB，那么本项目无法满足你的需求，你需要自己去实现相关功能，
+        同样的，如果你想要使用mybatis,hibernate之类的框架，则没有必要使用该项目。
+    </description>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.laoshini.dk</groupId>
+            <artifactId>dk-core</artifactId>
+            <version>${dangkang.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.iq80.leveldb</groupId>
+            <artifactId>leveldb</artifactId>
+            <version>0.10</version>
+        </dependency>
+    </dependencies>
+
+</project>
