@@ -83,6 +83,8 @@ dangkang
     - 提供一些非必要功能的独立实现
 
 ## 使用示例
+[点击前往示例项目](https://github.com/fagarine/dk-game-example)
+
 ### 快速启动
 引入当康项目的github仓库
 ```xml
