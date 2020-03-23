@@ -108,7 +108,7 @@ public abstract class AbstractInnerGameServer<S, M> extends AbstractGameServer {
         }
 
         GameServers.putServer(this);
-        LogUtil.start("游戏服[{}]启动完成！", getGameName());
+        LogUtil.start("游戏服[{}]启动完成！", getServerName());
     }
 
     /**

@@ -129,6 +129,24 @@ public class Registers {
     }
 
     /**
+     * 创建并返回一个，遵从当康系统设计的消息类的类扫描注册器
+     * <p>
+     * 当康系统设计的消息类规范只有一条：
+     * </p>
+     * <p>
+     * 消息类中一个名为{@link IMessage#ID_FIELD MESSAGE_ID}的静态变量或常量，
+     * 或者有一个名为{@link IMessage#ID_METHOD getId()}的静态方法，可以提供消息类对应的消息id
+     * </p>
+     *
+     * @param packagePrefixes 扫描包路径
+     * @return 该方法不会返回null
+     */
+    public static IMessageRegister newDangKangMessageRegister(String[] packagePrefixes) {
+        return new MessageRegisterAdapter().setScanner(ClassScanners.newPackageScanner(packagePrefixes))
+                .setIdReader(ClassIdReader.methodOrFieldReader(IMessage.ID_FIELD, IMessage.ID_FIELD));
+    }
+
+    /**
      * 创建并返回一个，用户自定义的消息类扫描注册器
      *
      * @param classFilter 类筛选器

@@ -123,6 +123,41 @@ dangkang
     </repositories>
     ```
 
+#### 通过配置项快速启动游戏服务
+引入项目依赖
+```xml
+<dependency>
+    <groupId>cn.laoshini.dk</groupId>
+    <artifactId>dk-starter</artifactId>
+    <version>${dangkang.version}</version>
+</dependency>
+```
+新建配置文件，文件名随便（建议使用application.properties名称，项目中加入spring-boot-autoconfigure依赖可借助IDE辅助配置），在配置文件中加入如下配置信息：
+```properties
+# 游戏服id
+dk.game.server.id=101
+# 游戏服名称
+dk.game.server.name=当康大穰
+# 游戏服监听端口
+dk.game.server.port=9421
+```
+添加项目启动类：
+```java
+public class GameServerStarter {
+    public static void main(String[] args){
+        // 传入配置文件路径，启动服务
+        DangKangGameStarter.get().propertyConfigs("application.properties").start();
+    }
+}
+```
+启动GameServerStarter的main()方法，就可以启动一个监听在9421端口的TCP游戏服。
+
+以上这种方式启动的只是一个没有任何业务的游戏服，[这个项目](https://gitee.com/fagarine/dk-game-example/tree/master/dk-example-chat-game-starter)演示了如何添加游戏功能。
+
+更多配置信息，详见[DangKangGameProperties类](/dk-core/src/main/java/cn/laoshini/dk/starter/DangKangGameProperties.java)和[DangKangGameServerProperties类](/dk-core/src/main/java/cn/laoshini/dk/starter/DangKangGameServerProperties.java)。
+自动配置和启动支持入口类：[DkGameServerAutoConfiguration类](/dk-core/src/main/java/cn/laoshini/dk/starter/DkGameServerAutoConfiguration.java)
+
+#### 自定义启动方式
 引入项目依赖
 ```xml
 <dependency>

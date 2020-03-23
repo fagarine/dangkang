@@ -16,6 +16,7 @@
         <module>dk-core</module>
         <module>dk-game-core</module>
         <module>dk-impl-basic</module>
+        <module>dk-starter</module>
     </modules>
 
     <properties>

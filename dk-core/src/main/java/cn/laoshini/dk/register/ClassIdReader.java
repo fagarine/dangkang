@@ -7,6 +7,7 @@ import java.lang.reflect.Modifier;
 import java.util.function.Function;
 
 import cn.laoshini.dk.util.LogUtil;
+import cn.laoshini.dk.util.StringUtil;
 
 /**
  * @author fagarine
@@ -23,35 +24,38 @@ public class ClassIdReader {
      * @return 该方法不会返回null
      */
     public static <I> Function<Class<?>, I> fieldReader(String idFieldName) {
-        return clazz -> {
-            Field idField;
-            try {
-                idField = clazz.getDeclaredField(idFieldName);
-            } catch (NoSuchFieldException e) {
-                LogUtil.debug("类[{}]中没有找到名为[{}]的变量或常量", clazz.getName(), idFieldName);
-                return null;
-            }
+        return clazz -> readIdByField(clazz, idFieldName);
+    }
 
-            if (!Modifier.isStatic(idField.getModifiers())) {
-                LogUtil.debug("类[{}]中id[{}]必须是静态变量或常量", clazz.getName(), idFieldName);
-                return null;
-            }
+    @SuppressWarnings("unchecked")
+    private static <I> I readIdByField(Class<?> clazz, String idFieldName) {
+        Field idField;
+        try {
+            idField = clazz.getDeclaredField(idFieldName);
+        } catch (NoSuchFieldException e) {
+            LogUtil.debug("类[{}]中没有找到名为[{}]的变量或常量", clazz.getName(), idFieldName);
+            return null;
+        }
 
-            I id;
-            boolean accessible = idField.isAccessible();
-            try {
-                if (!accessible) {
-                    idField.setAccessible(true);
-                }
-                id = (I) (idField.get(null));
-                return id;
-            } catch (Exception e) {
-                LogUtil.debug("获取[{}]类对应的id出错, field: {}", clazz.getName(), idFieldName);
-                return null;
-            } finally {
-                idField.setAccessible(accessible);
+        if (!Modifier.isStatic(idField.getModifiers())) {
+            LogUtil.debug("类[{}]中id[{}]必须是静态变量或常量", clazz.getName(), idFieldName);
+            return null;
+        }
+
+        I id;
+        boolean accessible = idField.isAccessible();
+        try {
+            if (!accessible) {
+                idField.setAccessible(true);
             }
-        };
+            id = (I) (idField.get(null));
+            return id;
+        } catch (Exception e) {
+            LogUtil.debug("获取[{}]类对应的id出错, field: {}", clazz.getName(), idFieldName);
+            return null;
+        } finally {
+            idField.setAccessible(accessible);
+        }
     }
 
     /**
@@ -62,34 +66,52 @@ public class ClassIdReader {
      * @return 该方法不会返回null
      */
     public static <I> Function<Class<?>, I> methodReader(String idMethodName) {
+        return clazz -> readIdByMethod(clazz, idMethodName);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <I> I readIdByMethod(Class<?> clazz, String idMethodName) {
+        Method idMethod;
+        try {
+            idMethod = clazz.getDeclaredMethod(idMethodName);
+        } catch (NoSuchMethodException e) {
+            LogUtil.debug("类[{}]没有提供一个可访问的无参方法获取id, method:{}", clazz.getName(), idMethodName);
+            return null;
+        }
+
+        if (!Modifier.isStatic(idMethod.getModifiers())) {
+            LogUtil.debug("类[{}]中获取id的方法[{}]必须是静态方法", clazz.getName(), idMethodName);
+            return null;
+        }
+
+        I id;
+        boolean accessible = idMethod.isAccessible();
+        try {
+            if (!accessible) {
+                idMethod.setAccessible(true);
+            }
+            id = (I) (idMethod.invoke(null));
+            return id;
+        } catch (Exception e) {
+            LogUtil.debug("获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
+            return null;
+        } finally {
+            idMethod.setAccessible(accessible);
+        }
+    }
+
+    public static <I> Function<Class<?>, I> methodOrFieldReader(String idMethodName, String idFieldName) {
         return clazz -> {
-            Method idMethod;
-            try {
-                idMethod = clazz.getDeclaredMethod(idMethodName);
-            } catch (NoSuchMethodException e) {
-                LogUtil.debug("类[{}]没有提供一个可访问的无参方法获取id, method:{}", clazz.getName(), idMethodName);
-                return null;
+            I id = null;
+            if (StringUtil.isNotEmptyString(idMethodName)) {
+                id = readIdByMethod(clazz, idMethodName);
             }
 
-            if (!Modifier.isStatic(idMethod.getModifiers())) {
-                LogUtil.debug("类[{}]中获取id的方法[{}]必须是静态方法", clazz.getName(), idMethodName);
-                return null;
+            if (id == null && StringUtil.isNotEmptyString(idFieldName)) {
+                // 在类中找不到获取id的方法，在静态变量中查找
+                return readIdByField(clazz, idFieldName);
             }
-
-            I id;
-            boolean accessible = idMethod.isAccessible();
-            try {
-                if (!accessible) {
-                    idMethod.setAccessible(true);
-                }
-                id = (I) (idMethod.invoke(null));
-                return id;
-            } catch (Exception e) {
-                LogUtil.debug("获取[{}]类对应的id出错, method: {}", clazz.getName(), idMethodName);
-                return null;
-            } finally {
-                idMethod.setAccessible(accessible);
-            }
+            return null;
         };
     }
 
@@ -101,6 +123,7 @@ public class ClassIdReader {
      * @param <I> id变量类型
      * @return 该方法不会返回null
      */
+    @SuppressWarnings("unchecked")
     public static <I> Function<Class<?>, I> annotationReader(Class<? extends Annotation> annotationClass,
             String idMethodName) {
         return clazz -> {
@@ -130,6 +153,7 @@ public class ClassIdReader {
         };
     }
 
+    @SuppressWarnings("unchecked")
     public static <I> Function<Class<?>, I> methodOrAnnotationReader(String idMethodName,
             Class<? extends Annotation> annotationClass, String annotationIdMethod) {
         return clazz -> {
