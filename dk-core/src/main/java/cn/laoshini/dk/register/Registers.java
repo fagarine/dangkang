@@ -143,7 +143,7 @@ public class Registers {
      */
     public static IMessageRegister newDangKangMessageRegister(String[] packagePrefixes) {
         return new MessageRegisterAdapter().setScanner(ClassScanners.newPackageScanner(packagePrefixes))
-                .setIdReader(ClassIdReader.methodOrFieldReader(IMessage.ID_FIELD, IMessage.ID_FIELD));
+                .setIdReader(ClassIdReader.methodOrFieldReader(IMessage.ID_METHOD, IMessage.ID_FIELD));
     }
 
     /**
@@ -175,13 +175,13 @@ public class Registers {
     public static IMessageHandlerRegister newDangKangHandlerRegister() {
         return new MessageHandlerRegisterAdaptor()
                 .setScanner(ClassScanners.newAnnotationAndParentScanner(MessageHandle.class, IMessageHandler.class))
-                .setIdReader(ClassIdReader.annotationReader(MessageHandle.class, MessageHandle.ID_METHOD));
+                .setIdReader(ClassIdReader.annotationReader(MessageHandle.class, MessageHandle.ID_METHOD)).singleton();
     }
 
     public static IMessageHandlerRegister newDangKangHandlerRegister(String[] packagePrefixes) {
         return new MessageHandlerRegisterAdaptor().setScanner(ClassScanners
                 .newAnnotationAndParentScanner(MessageHandle.class, IMessageHandler.class, packagePrefixes))
-                .setIdReader(ClassIdReader.annotationReader(MessageHandle.class, MessageHandle.ID_METHOD));
+                .setIdReader(ClassIdReader.annotationReader(MessageHandle.class, MessageHandle.ID_METHOD)).singleton();
     }
 
     public static <S, M> GameServerRegisterAdaptor<S, M> newGameServerRegisterAdaptor() {

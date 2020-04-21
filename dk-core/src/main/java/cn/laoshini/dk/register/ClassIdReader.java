@@ -111,7 +111,7 @@ public class ClassIdReader {
                 // 在类中找不到获取id的方法，在静态变量中查找
                 return readIdByField(clazz, idFieldName);
             }
-            return null;
+            return id;
         };
     }
 

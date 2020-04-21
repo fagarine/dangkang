@@ -21,6 +21,7 @@
 
     <properties>
         <jdk.version>1.8</jdk.version>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <project.build.encoding>UTF-8</project.build.encoding>
         <dangkang.version>${project.version}</dangkang.version>
         <spring.version>5.2.0.RELEASE</spring.version>

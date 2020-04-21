@@ -10,6 +10,9 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 
 import cn.laoshini.dk.constant.GameServerProtocolEnum;
+import cn.laoshini.dk.net.codec.INettyMessageDecoder;
+import cn.laoshini.dk.net.codec.INettyMessageEncoder;
+import cn.laoshini.dk.net.msg.IMessageDispatcher;
 
 /**
  * 游戏服快速相关启动配置项，游戏服配置信息
@@ -43,5 +46,20 @@ public class DangKangGameServerProperties {
      * 游戏服务器使用什么协议通信（HTTP,TCP,UDP等）
      */
     private GameServerProtocolEnum protocol = GameServerProtocolEnum.TCP;
+
+    /**
+     * 消息编码器类
+     */
+    private Class<INettyMessageEncoder> encoder;
+
+    /**
+     * 消息解码器类
+     */
+    private Class<INettyMessageDecoder> decoder;
+
+    /**
+     * 消息分发调度类
+     */
+    private Class<IMessageDispatcher> messageDispatcher;
 
 }

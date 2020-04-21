@@ -1,7 +1,9 @@
 package cn.laoshini.dk.manager;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.InitializingBean;
@@ -22,6 +24,7 @@ import cn.laoshini.dk.register.IMessageDtoRegister;
 import cn.laoshini.dk.register.IMessageHandlerRegister;
 import cn.laoshini.dk.register.IMessageRegister;
 import cn.laoshini.dk.register.Registers;
+import cn.laoshini.dk.starter.DkGameServerAutoConfiguration;
 import cn.laoshini.dk.util.ClassUtil;
 import cn.laoshini.dk.util.CollectionUtil;
 import cn.laoshini.dk.util.ReflectHelper;
@@ -53,6 +56,7 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
             for (String prefix : packagePrefix) {
                 if (Constants.DK_PACKAGE_PREFIX.startsWith(prefix)) {
                     flag = true;
+                    break;
                 }
             }
             if (!flag) {
@@ -60,11 +64,14 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
             }
         }
         packages = ResourcesHolder.addPackagePrefixes(packagePrefix.toArray(new String[0]));
+        Set<String> set = new LinkedHashSet<>(packagePrefix);
+        set.remove(Constants.DK_PACKAGE_PREFIX);
+        String[] bizPackages = set.toArray(new String[0]);
 
         ClassLoader classLoader = DangKangAnnotationProcessor.class.getClassLoader();
 
-        // 查找系统中的Spring托管对象
-        findAndRegisterSpringBeans(classLoader, packages);
+        // 查找并注册项目中的Spring托管对象，跳过当康系统包路径，Spring会自动注册
+        findAndRegisterSpringBeans(classLoader, bizPackages);
     }
 
     @Override
@@ -83,6 +90,9 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
         // 可配置功能对象注入，一定要保证可配置功能的注入，早于对可配置功能依赖的调用
         ConfigurableFunctionInjector.injectWaitBeans();
 
+        // 在执行游戏服相关功能注册前，需要保证先执行的逻辑
+        beforeGameRegister();
+
         // 查找并注册消息类
         findAndRegisterMessage(classLoader);
 
@@ -94,6 +104,15 @@ public class DangKangAnnotationProcessor implements ApplicationContextAware, Ini
 
         // 查找并注册表单实体类
         findAndRegisterEntityClass(classLoader);
+    }
+
+    private void beforeGameRegister() {
+        try {
+            // 保证配置启动服务功能先执行
+            SpringContextHolder.getBean(DkGameServerAutoConfiguration.class);
+        } catch (BeansException e) {
+            // 未使用自动配置启动服务功能的，忽略
+        }
     }
 
     private void findAndRegisterResourceHolders(ClassLoader cl, String[] packages) {
