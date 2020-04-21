@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Conditional;
  *
  * @author fagarine
  */
-@Target(ElementType.TYPE)
+@Target({ ElementType.TYPE, ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 @Conditional(OnPropertyValueCondition.class)
 public @interface ConditionalOnPropertyValue {
